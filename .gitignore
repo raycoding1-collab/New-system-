@@ -1,0 +1,39 @@
+node_modules/
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.claude/settings.local.json
+
+# Taste skill working files: direction sheets, inspector screenshots, found assets
+.taste-skill/
+
+# Playwright MCP snapshots, console logs and screenshots
+.playwright-mcp/
+
+# Impeccable engine binary and runtime state (mirrors pbakaus/impeccable's .gitignore)
+**/skills/impeccable/scripts/bin/
+**/skills/impeccable/scripts/config.json
+**/.impeccable/hook.cache.json
+**/.impeccable/hook.pending.json
+.impeccable/config.local.json
+.impeccable/history/
+.impeccable/provider-smoke/
+.impeccable/critique/*
+!.impeccable/critique/ignore.md
+.impeccable/live/server.json
+.impeccable/live/codex-worker.json
+.impeccable/live/codex-worker.log
+.impeccable/live/sessions/
+.impeccable/live/previews/
+.impeccable/live/annotations/
+.impeccable/live/artifacts/
+.impeccable/live/accept-receipts/
+.impeccable/live/locks/
+.impeccable/live/cache/
+.impeccable/live/benchmarks/
+.impeccable/live/manual-edit-apply-transaction.json
+.impeccable/live/manual-edit-events.jsonl
+.impeccable/live/manual-edit-evidence/
+.impeccable/live/pending-manual-edits.json
+.impeccable/live/deferred-svelte-component-accepts.json

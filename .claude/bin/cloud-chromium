@@ -1,0 +1,7 @@
+#!/bin/sh
+# The Claude Code cloud container runs as root and ships Chromium at
+# /opt/pw-browsers/chromium; Chromium refuses to start as root without
+# --no-sandbox. The SessionStart hook in .claude/settings.json points
+# CHROME_PATH here (cloud sessions only) so the Taste skill's browser
+# scripts can find and launch it.
+exec /opt/pw-browsers/chromium --no-sandbox "$@"
