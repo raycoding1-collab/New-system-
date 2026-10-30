@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New System: a design team for Claude Code</title>
+<meta name="description" content="Taste, Impeccable, Emil Kowalski's skills, Figma MCP, Playwright MCP and Find Skills in one repo. Claude designs the page, then fails it in a real browser until it passes.">
+<meta name="theme-color" content="#351a2b">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/archivo-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+<script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="wordmark" href="#main">New System</a>
+  <a class="btn btn--on-dark" href="https://github.com/raycoding1-collab/New-system-">Get the repo</a>
+</header>
+
+<main id="main">
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero__chip hero__chip--stretch chip" data-ui>
+      <label class="chip__label" for="stretch">Stretch the headline</label>
+      <output class="chip__value" for="stretch" id="stretch-out">62%</output>
+      <input class="chip__range" type="range" id="stretch" min="62" max="125" step="1" value="62">
+    </div>
+
+    <h1 class="hero__title lines" id="hero-title">
+      <span class="line"><span data-line style="--i:0">A design team<span class="slot" aria-hidden="true"><img src="img/slot.jpg" alt="" width="1240" height="343"></span></span></span>
+      <span class="line"><span data-line style="--i:1">for Claude Code</span></span>
+    </h1>
+
+    <div class="hero__foot">
+      <p class="hero__lead">Six tools in one repo. Claude designs your page, then fails it in a real browser until it passes.</p>
+      <div class="hero__chip hero__chip--tracking chip" data-ui>
+        <label class="chip__label" for="tracking">Space the letters</label>
+        <output class="chip__value" for="tracking" id="tracking-out">−0.01em</output>
+        <input class="chip__range" type="range" id="tracking" min="-0.04" max="0.3" step="0.01" value="-0.01">
+      </div>
+      <div class="hero__chip hero__chip--gate chip" data-ui data-state="pass">
+        <span class="chip__label">Two-line rule</span>
+        <output class="chip__value" id="gate-out" aria-live="polite">2 lines</output>
+        <span class="chip__verdict" id="gate-verdict">Pass</span>
+        <button class="chip__reset" id="reset" type="button" hidden>Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="names" aria-labelledby="names-title">
+    <div class="names__run" data-reveal>
+      <h2 class="names__lead" id="names-title">Built on open work:</h2>
+      <p class="names__list"><span class="name">Emil Kowalski’s motion rules</span>, <span class="name">Paul Bakaus’s Impeccable</span>, <span class="name">Leonxlnx’s Taste</span>, <span class="name">Figma’s MCP server</span>, <span class="name">Microsoft’s Playwright</span> and <span class="name">Vercel Labs’ Find Skills</span>, wired to work as one.</p>
+    </div>
+  </section>
+
+  <section class="team" aria-labelledby="team-title">
+    <h2 class="team__title" id="team-title" data-reveal>One owner per stage</h2>
+
+    <article class="row row--proof">
+      <h3 class="row__title" data-reveal>Taste sets the direction</h3>
+      <p class="row__body" data-reveal style="--d:1">It deals three of 20 directions drawn from a study of 247 curated sites, and Claude picks one. Then its gate, a script that opens the page in a real browser at 1440, 768 and 390 pixels, fails it on every generated habit it measures.</p>
+      <div class="pair">
+        <figure class="pair__item" data-wipe>
+          <img src="img/stock-1440.jpg" alt="A generic landing page: a pill badge, a gradient headline about AI-powered design, a gradient button and three icon cards." width="1440" height="900" decoding="async">
+          <figcaption><span class="verdict">19 fail</span> <span>This page’s brief, built the stock way.</span></figcaption>
+        </figure>
+        <figure class="pair__item" data-wipe style="--d:2">
+          <img src="img/self-1440.jpg" alt="This page’s first screen: the headline A design team for Claude Code with its three control chips." width="1440" height="900" decoding="async">
+          <figcaption><span class="verdict">0 fail</span> <span>This page, through the same gate.</span></figcaption>
+        </figure>
+      </div>
+    </article>
+
+    <article class="row row--light">
+      <h3 class="row__title" data-reveal>Impeccable runs the critique</h3>
+      <p class="row__body" data-reveal style="--d:1">24 commands give Claude a design vocabulary: critique, audit, polish, bolder, typeset. Two isolated reviewers, a design director and a detector in a real browser, scored this page and named five problems. This version is the fix.</p>
+      <figure class="row__pic" data-wipe style="--d:2">
+        <div class="score" data-ui>
+          <p class="score__head"><code>/impeccable critique site/index.html</code></p>
+          <table>
+            <caption>Its first critique of this page</caption>
+            <tbody>
+              <tr><th scope="row">Visibility of system status</th><td>3</td></tr>
+              <tr><th scope="row">Consistency and standards</th><td>2</td></tr>
+              <tr><th scope="row">Recognition rather than recall</th><td>2</td></tr>
+              <tr><th scope="row">Aesthetic and minimalist design</th><td>2</td></tr>
+              <tr><th scope="row">Error recovery</th><td>3</td></tr>
+            </tbody>
+          </table>
+          <p class="score__total"><span>22/36</span> <span>P1 · The middle rows are a template.</span></p>
+        </div>
+        <figcaption>Five of the nine scored heuristics, and the issue that rebuilt this section.</figcaption>
+      </figure>
+    </article>
+
+    <article class="row row--flip">
+      <h3 class="row__title" data-reveal>Emil’s rules set the motion</h3>
+      <p class="row__body" data-reveal style="--d:1">16 skills from Emil Kowalski’s years at Vercel and Linear. Ease-out for anything that enters, under 300ms for interface motion, nothing that grows from zero, and a press state on every button. His review of this page’s motion read like this.</p>
+      <figure class="row__pic" data-wipe style="--d:2">
+        <div class="swap" data-ui>
+          <table>
+            <caption>His review table, applied here</caption>
+            <thead><tr><th scope="col">Before</th><th scope="col">After</th><th scope="col">Why</th></tr></thead>
+            <tbody>
+              <tr><td>Chips and lead fade as one block</td><td>Each part rises, 70ms apart</td><td>A stagger reads as order</td></tr>
+              <tr><td>Hidden states set by an inline script</td><td>Set by the script that reveals them</td><td>Nothing stays hidden if it fails</td></tr>
+              <tr><td>Copy gives no feedback</td><td>Copied, through a 2px blur</td><td>Blur bridges a state swap</td></tr>
+              <tr><td>Hover on every pointer</td><td><code>(hover: hover) and (pointer: fine)</code></td><td>Taps leave hover stuck</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>Four of nine rows from the review of this page.</figcaption>
+      </figure>
+    </article>
+
+    <article class="row row--light">
+      <h3 class="row__title" data-reveal>Figma hands over the design</h3>
+      <p class="row__body" data-reveal style="--d:1">Paste a link to a frame. Claude reads its structure, variables and screenshot before writing a line, uses the assets Figma serves instead of placeholders, and matches the frame one to one.</p>
+      <figure class="row__pic" data-wipe style="--d:2">
+        <pre class="flow" data-ui><code><span class="flow__step is-on">get_design_context</span>
+<span class="flow__step">get_metadata</span>        <span class="flow__note">when the frame is too large</span>
+<span class="flow__step">get_screenshot</span>
+<span class="flow__step">get_variable_defs</span>
+<span class="flow__step">implement, then compare</span></code></pre>
+        <figcaption>The order Figma’s own guide requires, written into the project’s rules.</figcaption>
+      </figure>
+    </article>
+
+    <article class="row row--flip">
+      <h3 class="row__title" data-reveal>Playwright clicks through it</h3>
+      <p class="row__body" data-reveal style="--d:1">A real browser opens the page, drags the controls, opens every question, types a brief and presses Copy, then reads the console. In a cloud session it switches to the container’s own Chromium.</p>
+      <figure class="row__pic" data-wipe style="--d:2">
+        <video src="media/check.webm" poster="img/check-poster.jpg" width="1280" height="800" muted loop playsinline preload="none" aria-label="Recording of Playwright MCP dragging this page’s Stretch control until the two-line rule fails, then scrolling and pressing Copy."></video>
+        <figcaption>Playwright MCP’s own recording of its check of this page.</figcaption>
+      </figure>
+    </article>
+
+    <article class="row row--light">
+      <h3 class="row__title" data-reveal>Find Skills fetches the rest</h3>
+      <p class="row__body" data-reveal style="--d:1">Tell it what you are working on. It searches the skills directory, shows each match with its install count and author, and installs the one you approve into the project, where the lockfile records it.</p>
+      <figure class="row__pic" data-wipe style="--d:2">
+        <pre class="flow lock" data-ui><code>skills-lock.json
+<span class="flow__step">"find-skills"</span>     vercel-labs/skills
+<span class="flow__step">"design-taste-frontend"</span>  Leonxlnx/taste-skill
+<span class="flow__step">"emil-design-eng"</span>  emilkowalski/skills
+<span class="flow__step">"animate"</span>          emilkowalski/skills
+<span class="flow__note">…and 14 more, each with a content hash</span></code></pre>
+        <figcaption>The project’s real lockfile: where every skill came from.</figcaption>
+      </figure>
+    </article>
+  </section>
+
+  <section class="stages" aria-labelledby="stages-title">
+    <h2 class="stages__title" id="stages-title" data-reveal>How this page was built</h2>
+    <ol class="bar" data-ui data-fill>
+      <li class="bar__seg" style="--grow: 8"><span class="bar__time">Eight minutes</span><span class="bar__what" data-reveal style="--d:2">First, Taste dealt three directions and Claude chose one.</span></li>
+      <li class="bar__seg" style="--grow: 3"><span class="bar__time">Three minutes</span><span class="bar__what" data-reveal style="--d:3">Then Claude wrote the page.</span></li>
+      <li class="bar__seg" style="--grow: 17"><span class="bar__time">Seventeen minutes</span><span class="bar__what" data-reveal style="--d:4">Next, the gate, Emil’s motion rules and Impeccable’s critique.</span></li>
+      <li class="bar__seg" style="--grow: 12"><span class="bar__time">Twelve minutes</span><span class="bar__what" data-reveal style="--d:5">Last, the fixes, and Playwright clicking through.</span></li>
+    </ol>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-title">
+    <h2 class="faq__title" id="faq-title" data-reveal>Before you clone it</h2>
+    <div class="faq__list" data-reveal style="--d:1">
+      <details>
+        <summary>What do I need installed?</summary>
+        <p>Claude Code, Node 22 or newer, and Chrome, Edge or Chromium for the browser checks. Git to clone the repo. Nothing else installs itself.</p>
+      </details>
+      <details>
+        <summary>How long does one build take?</summary>
+        <p>Taste’s own estimate is 30 to 45 minutes and a few hundred thousand tokens for a page. This one took about 40, including a full Impeccable critique and a round of fixes; the bar above is its real record.</p>
+      </details>
+      <details>
+        <summary>Do I need a Figma account?</summary>
+        <p>Only when you hand Claude a Figma frame. The remote server needs a Dev or Full seat on a paid plan; Starter, View and Collab seats get six tool calls a month.</p>
+      </details>
+      <details>
+        <summary>Does it work in Claude Code on the web?</summary>
+        <p>Yes. Playwright and the gate run on the container’s own Chromium. Figma, the open photo archives and skills.sh work once their hosts are allowed in the environment’s network settings.</p>
+      </details>
+      <details>
+        <summary>Does anything run on its own?</summary>
+        <p>Only what you ask for. Impeccable’s design hook stays off until you run <code>/impeccable hooks on</code>, and three of Emil’s skills run only when you call them by name.</p>
+      </details>
+      <details>
+        <summary>How do I keep it current?</summary>
+        <p><code>npx skills update -p</code> refreshes Emil’s skills, Taste and Find Skills from the lockfile. <code>npx impeccable update</code> refreshes Impeccable.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="brief" aria-labelledby="brief-title">
+    <div class="clone" data-reveal>
+      <p class="clone__say">First, clone it and start Claude Code inside it:</p>
+      <div class="clone__cmd" data-ui>
+        <pre><code id="clone-cmd">git clone https://github.com/raycoding1-collab/New-system- &amp;&amp; cd New-system- &amp;&amp; claude</code></pre>
+        <button class="btn btn--ink" type="button" data-copy="clone-cmd"><span class="btn__text">Copy</span></button>
+      </div>
+    </div>
+    <form class="brief__form" id="brief-form">
+      <h2 class="brief__line" id="brief-title" data-reveal>Then build a site for</h2>
+      <div class="brief__line brief__line--two" data-reveal style="--d:1">
+        <input class="brief__input" id="brief-input" name="brief" type="text" autocomplete="off" placeholder="a bakery in Porto" aria-labelledby="brief-title" required>
+        <button class="brief__go" type="submit"><span class="btn__text">Copy</span></button>
+      </div>
+      <p class="brief__note" id="brief-note" aria-live="polite" data-reveal style="--d:2">Copies <code>/build-website</code> with your words. Paste it into Claude Code on your computer.</p>
+    </form>
+  </section>
+
+</main>
+
+<footer class="end">
+  <div class="end__top">
+    <div class="end__invite" data-reveal>
+      <h2 class="end__title">Open it in Claude&nbsp;Code</h2>
+      <a class="btn btn--on-dark" href="https://github.com/raycoding1-collab/New-system-">Get the repo</a>
+    </div>
+    <ul class="end__links" data-reveal style="--d:1">
+      <li><a href="https://github.com/raycoding1-collab/New-system-/blob/HEAD/README.md">README</a></li>
+      <li><a href="https://github.com/raycoding1-collab/New-system-/blob/HEAD/CLAUDE.md">CLAUDE.md</a></li>
+      <li><a href="https://github.com/raycoding1-collab/New-system-/tree/HEAD/third_party/licenses">Licenses</a></li>
+    </ul>
+  </div>
+  <div class="end__legal">
+    <p>Taste MIT · Impeccable Apache-2.0 · Emil Kowalski’s skills MIT · Find Skills MIT · Archivo OFL</p>
+    <p>Pictures: the Taste inspector and Playwright MCP</p>
+  </div>
+  <p class="end__name" aria-hidden="true">New System</p>
+</footer>
+
+<script src="main.js" defer></script>
+</body>
+</html>

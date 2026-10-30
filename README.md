@@ -14,6 +14,15 @@ To get more skills, say what you're working on ("find me a skill for writing cha
 `/find-skills`). Claude searches skills.sh, shows each match with its install count and author, and
 installs the one you approve into this project.
 
+## The demo site
+
+`site/` is a landing page for this setup, built with it: Taste dealt the direction ("The sentence is the
+layout") and gated it to 0 FAIL at 1440, 768 and 390; Emil Kowalski's rules set the motion; Impeccable
+critiqued it (22/36, five priority issues) and its fixes were applied; Playwright MCP recorded the
+click-through in `site/media/check.webm`. `site/proof/stock-page.html` is the deliberately generic
+version of the same brief that the gate fails 19 times. Open `site/index.html`, or serve the folder:
+`python3 -m http.server -d site`.
+
 ## What's installed
 
 | Piece | Source | Version | License |
