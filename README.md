@@ -1,6 +1,6 @@
 # New system: a design team for Claude Code
 
-Three design skills and two MCP tools, set up at project level. Clone the repo, open it in Claude Code,
+Three design skills, two MCP tools, and a skill that finds and installs more skills, all set up at project level. Clone the repo, open it in Claude Code,
 and describe the website you want:
 
 ```
@@ -9,6 +9,10 @@ and describe the website you want:
 
 Claude picks an art direction, builds the page with real photographs, adds motion, critiques and
 polishes it, then opens it in a real browser to test it. `CLAUDE.md` explains how the pieces divide the work.
+
+To get more skills, say what you're working on ("find me a skill for writing changelogs", or run
+`/find-skills`). Claude searches skills.sh, shows each match with its install count and author, and
+installs the one you approve into this project.
 
 ## What's installed
 
@@ -19,12 +23,14 @@ polishes it, then opens it in a real browser to test it. `CLAUDE.md` explains ho
 | **Taste** (`design-taste-frontend`) | [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill) | 2.1.5, `12af471` | MIT |
 | **Figma MCP** (remote server) | [figma/mcp-server-guide](https://github.com/figma/mcp-server-guide) | `https://mcp.figma.com/mcp` | Figma Developer Terms |
 | **Playwright MCP** | [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) | `@playwright/mcp@0.0.83` | Apache-2.0 |
+| **Find Skills** (`find-skills`): finds, vets and installs more skills from [skills.sh](https://skills.sh) | [vercel-labs/skills](https://github.com/vercel-labs/skills) | `92a9a34` | MIT |
 | `/build-website` | this repo | — | — |
 
 How each piece was installed:
 
-- Emil's and Taste's skills: `npx skills add emilkowalski/skills --skill '*' --agent claude-code --copy` and
-  `npx skills add https://github.com/Leonxlnx/taste-skill --skill design-taste-frontend --agent claude-code --copy`.
+- Emil's, Taste's and Find Skills: `npx skills add emilkowalski/skills --skill '*' --agent claude-code --copy`,
+  `npx skills add https://github.com/Leonxlnx/taste-skill --skill design-taste-frontend --agent claude-code --copy` and
+  `npx skills add vercel-labs/skills --skill find-skills --agent claude-code --copy`.
   The lockfile is `skills-lock.json`.
 - Impeccable: copied from the upstream repo's tracked Claude Code build (`.claude/skills/impeccable`
   and `.claude/agents/impeccable-*.md`). These are the files `npx impeccable install --providers=claude
@@ -63,7 +69,7 @@ The setup also runs in cloud sessions, with these differences (also covered in `
   broader access level, or add these under Allowed domains:
   `mcp.figma.com`, `commons.wikimedia.org`, `upload.wikimedia.org`, `api.openverse.org`,
   `collectionapi.metmuseum.org`, `images.metmuseum.org`, `api.artic.edu`, `www.artic.edu`,
-  `archive.org`, `images-api.nasa.gov`, `images-assets.nasa.gov`.
+  `archive.org`, `images-api.nasa.gov`, `images-assets.nasa.gov`, and `skills.sh` for Find Skills search.
   See https://code.claude.com/docs/en/cloud-environments#network-access.
   Figma's OAuth sign-in also has to complete in the session. If it can't, connect Figma as a connector at
   https://claude.ai/customize/connectors and start a new session.
@@ -71,7 +77,7 @@ The setup also runs in cloud sessions, with these differences (also covered in `
 ## Updating
 
 ```bash
-npx skills update -p                  # Emil Kowalski's skills + Taste (reads skills-lock.json)
+npx skills update -p                  # Emil Kowalski's skills, Taste, Find Skills (reads skills-lock.json)
 npx impeccable update                 # Impeccable
 ```
 

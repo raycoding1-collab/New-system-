@@ -1,6 +1,6 @@
 # Design team setup
 
-This project gives Claude Code a design team: three design skills and two MCP tools. Together they let
+This project gives Claude Code a design team: three design skills and two MCP tools, plus Find Skills for getting more skills. Together they let
 Claude design a website, build it, and check its own work in a real browser.
 
 | Piece | What it does here | Where |
@@ -10,8 +10,22 @@ Claude design a website, build it, and check its own work in a real browser.
 | **Emil Kowalski's skills** | The small details that make UI feel polished: motion (`animate`, `emil-design-eng`, `animation-performance`, `find-animation-opportunities`, `remove-animations`, `improve-animations`), stress tests (`break-ui`), phone feel (`mobile-native`), Apple-style motion (`apple-design`). | `.claude/skills/<name>/` |
 | **Figma MCP** | Reads Figma frames, variables, components and screenshots so a design can be turned into code. | `.mcp.json` → `figma` |
 | **Playwright MCP** | Opens the site in a real browser to click through it, read the console, resize it and take screenshots. | `.mcp.json` → `playwright` |
+| **Find Skills** (`find-skills`) | Searches the skills.sh directory for skills that fit the task, vets them by install count and author, and installs the one the user approves. | `.claude/skills/find-skills/` |
 
 To run the whole pipeline on a brief, use `/build-website <describe the site>`.
+
+## Finding more skills
+
+Use `find-skills` when the user asks for a skill, or when a task would clearly benefit from one that
+isn't installed. Check `.claude/skills/` first, so you don't install a second skill for something
+already covered (design, motion, browser testing). Two project rules apply on top of the skill's steps:
+
+- **Install only after the user approves**, naming the exact `owner/repo` and skill. Show the install
+  count, the author and the skills.sh link first, as the skill describes.
+- **Install into the project, not globally**, so the skill is committed and tracked in `skills-lock.json`:
+  `npx skills add <owner/repo> --skill <name> --agent claude-code --copy -y`. Use the skill's `-g`
+  (user-level) form only if the user asks for a global install. After installing, tell the user to start
+  a new session so the skill loads.
 
 ## Who leads what
 
@@ -73,6 +87,10 @@ When `CLAUDE_CODE_REMOTE=true`:
   need no browser.
 - **Playwright MCP** switches itself to the container's Chromium, headless (`.claude/mcp/playwright.mjs`).
   Serve the site on `localhost`; external sites go through the egress proxy and may be blocked.
+- **Find Skills search** (`npx skills find`, the skills.sh leaderboard) needs `skills.sh`. If that host
+  is blocked, the CLI prints "No skills found", which does not mean no skill exists. Tell the user the
+  directory couldn't be reached. Installing from a known `owner/repo` still works, because it goes
+  through GitHub.
 - **Figma MCP** (`mcp.figma.com`) and **Taste's photo search** (Wikimedia Commons, Openverse, the Met,
   Art Institute of Chicago, Internet Archive, NASA) work only if the environment's network policy allows
   those hosts. If they're blocked, say so. Don't fake the missing result: no placeholder "Figma"
