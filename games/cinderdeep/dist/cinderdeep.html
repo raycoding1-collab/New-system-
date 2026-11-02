@@ -463,7 +463,7 @@ const ROOMS = {
   },
   longdrip: {
     name: 'The Long Drip', biome: 'drip', wx: 84, wy: 30, music: 'calm',
-    hints: [{ x: 9.5, y: 7.45, k: 'dash' }, { x: 65.5, y: 4.4, k: 'pogo' }],
+    hints: [{ x: 9.5, y: 7.45, k: 'dash' }, { x: 9.5, y: 7.45, k: 'nodash' }, { x: 65.5, y: 4.4, k: 'pogo' }],
     rays: [[18, 0.25, 90], [41, 0.18, 120], [63, 0.22, 80], [82, 0.3, 100]],
     map: [
       '############################################################################################',
@@ -570,9 +570,11 @@ const HINTS = {
   strike: { touch: 'Tap the blade to strike. Push up or down to aim', keys: 'X or J to strike. Hold up or down to aim' },
   pogo: { touch: 'Strike downward in the air to bounce off thorns', keys: 'Hold down and strike in the air to bounce off thorns' },
   ember: { touch: 'Hits fill your tallow. Hold the flame to mend, tap it to hurl a cinder', keys: 'Hits fill your tallow. Hold F to mend, tap F to hurl a cinder' },
-  climb: { touch: 'The shaft climbs toward a shrine', keys: 'The shaft climbs toward a shrine' },
+  climb: { touch: 'Climb. A shrine waits at the top of this shaft', keys: 'Climb. A shrine waits at the top of this shaft' },
   drop: { touch: 'Push down and jump to drop through a ledge', keys: 'Hold down and jump to drop through a ledge' },
   dash: { touch: 'Jump, then flicker across with the double arrow', keys: 'Jump, then flicker across with C or Shift', needs: 'dash' },
+  // Shown at the molten channel until the player has the Flicker, so nobody keeps trying to jump it.
+  nodash: { touch: 'Too wide to jump. Climb the shaft behind you to the shrine at its top', keys: 'Too wide to jump. Climb the shaft behind you to the shrine at its top', unless: 'dash' },
 };
 
 </script>
@@ -3918,7 +3920,6 @@ function render() {
     ctx.drawImage(room.chunk(cx, cy, G.chunkScale), cx * CHUNK, cy * CHUNK, CHUNK, CHUNK);
   }
   drawDynamicTiles(view);
-  drawHints(view);
   for (const pr of G.props) if (pr instanceof Urn) pr.draw(ctx, G);
   for (const e of G.enemies) e.draw(ctx, G);
   G.player.draw(ctx, G);
@@ -3943,8 +3944,9 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(lightC, 0, 0, W, H);
 
-  // Emissive pass
+  // Emissive pass. Hints come first so the darkness never swallows them on a small screen.
   ctx.setTransform(px, 0, 0, px, ox, oy);
+  drawHints(view);
   for (const f of room.flames) {
     if (f.x < camX - 20 || f.x > camX + v.w + 20 || f.y < camY - 20 || f.y > camY + v.h + 20) continue;
     drawFlame(ctx, f.x, f.y, 6.5, 1.9, t * 1.1 + f.ph, Math.sin(t * 0.7 + f.ph) * 0.6, false);
@@ -4083,6 +4085,7 @@ function drawHints(view) {
   for (const h of room.def.hints) {
     const def = HINTS[h.k];
     if (def.needs === 'dash' && !G.hasDash) continue;
+    if (def.unless === 'dash' && G.hasDash) continue;
     const x = h.x * T, y = h.y * T;
     const d = Math.hypot(p.cx - x, p.cy - y);
     const a = clamp(1 - (d - 140) / 220, 0, 1);
@@ -4101,7 +4104,7 @@ function drawHints(view) {
     lines.forEach((ln, i) => {
       const ly = y + i * 17;
       ctx.fillStyle = `rgba(0,0,0,${0.6 * a})`; ctx.fillText(ln, x, ly + 1.2);
-      ctx.fillStyle = hexA(B.top, 0.78 * a); ctx.fillText(ln, x, ly);
+      ctx.fillStyle = hexA(B.top, 0.72 * a); ctx.fillText(ln, x, ly);
     });
   }
 }

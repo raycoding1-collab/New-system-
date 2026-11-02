@@ -129,7 +129,7 @@ const ROOMS = {
   },
   longdrip: {
     name: 'The Long Drip', biome: 'drip', wx: 84, wy: 30, music: 'calm',
-    hints: [{ x: 9.5, y: 7.45, k: 'dash' }, { x: 65.5, y: 4.4, k: 'pogo' }],
+    hints: [{ x: 9.5, y: 7.45, k: 'dash' }, { x: 9.5, y: 7.45, k: 'nodash' }, { x: 65.5, y: 4.4, k: 'pogo' }],
     rays: [[18, 0.25, 90], [41, 0.18, 120], [63, 0.22, 80], [82, 0.3, 100]],
     map: [
       '############################################################################################',
@@ -236,7 +236,9 @@ const HINTS = {
   strike: { touch: 'Tap the blade to strike. Push up or down to aim', keys: 'X or J to strike. Hold up or down to aim' },
   pogo: { touch: 'Strike downward in the air to bounce off thorns', keys: 'Hold down and strike in the air to bounce off thorns' },
   ember: { touch: 'Hits fill your tallow. Hold the flame to mend, tap it to hurl a cinder', keys: 'Hits fill your tallow. Hold F to mend, tap F to hurl a cinder' },
-  climb: { touch: 'The shaft climbs toward a shrine', keys: 'The shaft climbs toward a shrine' },
+  climb: { touch: 'Climb. A shrine waits at the top of this shaft', keys: 'Climb. A shrine waits at the top of this shaft' },
   drop: { touch: 'Push down and jump to drop through a ledge', keys: 'Hold down and jump to drop through a ledge' },
   dash: { touch: 'Jump, then flicker across with the double arrow', keys: 'Jump, then flicker across with C or Shift', needs: 'dash' },
+  // Shown at the molten channel until the player has the Flicker, so nobody keeps trying to jump it.
+  nodash: { touch: 'Too wide to jump. Climb the shaft behind you to the shrine at its top', keys: 'Too wide to jump. Climb the shaft behind you to the shrine at its top', unless: 'dash' },
 };

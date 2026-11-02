@@ -617,7 +617,6 @@ function render() {
     ctx.drawImage(room.chunk(cx, cy, G.chunkScale), cx * CHUNK, cy * CHUNK, CHUNK, CHUNK);
   }
   drawDynamicTiles(view);
-  drawHints(view);
   for (const pr of G.props) if (pr instanceof Urn) pr.draw(ctx, G);
   for (const e of G.enemies) e.draw(ctx, G);
   G.player.draw(ctx, G);
@@ -642,8 +641,9 @@ function render() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.drawImage(lightC, 0, 0, W, H);
 
-  // Emissive pass
+  // Emissive pass. Hints come first so the darkness never swallows them on a small screen.
   ctx.setTransform(px, 0, 0, px, ox, oy);
+  drawHints(view);
   for (const f of room.flames) {
     if (f.x < camX - 20 || f.x > camX + v.w + 20 || f.y < camY - 20 || f.y > camY + v.h + 20) continue;
     drawFlame(ctx, f.x, f.y, 6.5, 1.9, t * 1.1 + f.ph, Math.sin(t * 0.7 + f.ph) * 0.6, false);
@@ -782,6 +782,7 @@ function drawHints(view) {
   for (const h of room.def.hints) {
     const def = HINTS[h.k];
     if (def.needs === 'dash' && !G.hasDash) continue;
+    if (def.unless === 'dash' && G.hasDash) continue;
     const x = h.x * T, y = h.y * T;
     const d = Math.hypot(p.cx - x, p.cy - y);
     const a = clamp(1 - (d - 140) / 220, 0, 1);
@@ -800,7 +801,7 @@ function drawHints(view) {
     lines.forEach((ln, i) => {
       const ly = y + i * 17;
       ctx.fillStyle = `rgba(0,0,0,${0.6 * a})`; ctx.fillText(ln, x, ly + 1.2);
-      ctx.fillStyle = hexA(B.top, 0.78 * a); ctx.fillText(ln, x, ly);
+      ctx.fillStyle = hexA(B.top, 0.72 * a); ctx.fillText(ln, x, ly);
     });
   }
 }
