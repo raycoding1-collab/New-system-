@@ -1,0 +1,7 @@
+{
+  "skillOverrides": {
+    "write-swift": "name-only",
+    "animate-expo": "name-only",
+    "deploy-to-vercel": "user-invocable-only"
+  }
+}

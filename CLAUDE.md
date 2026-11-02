@@ -1,7 +1,9 @@
 # Design team setup
 
-This project gives Claude Code a design team: three design skills and two MCP tools, plus Find Skills for getting more skills. Together they let
-Claude design a website, build it, and check its own work in a real browser.
+This project gives Claude Code a design team: three design skills and two MCP tools, five skills for the
+work around the design (search metadata, load speed, copy, proof, deploys), plus Find Skills for getting
+more skills. Together they let Claude design a website, build it, check its own work in a real browser,
+and ship it.
 
 | Piece | What it does here | Where |
 | --- | --- | --- |
@@ -10,7 +12,12 @@ Claude design a website, build it, and check its own work in a real browser.
 | **Emil Kowalski's skills** | The small details that make UI feel polished: motion (`animate`, `emil-design-eng`, `animation-performance`, `find-animation-opportunities`, `remove-animations`, `improve-animations`), stress tests (`break-ui`), phone feel (`mobile-native`), Apple-style motion (`apple-design`). | `.claude/skills/<name>/` |
 | **Figma MCP** | Reads Figma frames, variables, components and screenshots so a design can be turned into code. | `.mcp.json` → `figma` |
 | **Playwright MCP** | Opens the site in a real browser to click through it, read the console, resize it and take screenshots. | `.mcp.json` → `playwright` |
+| **Site-quality skills** | What the design skills don't cover: `seo` (title, description, canonical, Open Graph, JSON-LD, robots.txt, sitemap), `web-perf` (Core Web Vitals and load performance), `copywriting` (persuasive page copy), `verification-before-completion` (proof before saying "done"). | `.claude/skills/<name>/` |
+| **Deploy** (`/deploy-to-vercel`) | Preview deploys to Vercel. Runs only when the user asks. | `.claude/skills/deploy-to-vercel/` |
 | **Find Skills** (`find-skills`) | Searches the skills.sh directory for skills that fit the task, vets them by install count and author, and installs the one the user approves. | `.claude/skills/find-skills/` |
+
+`reports/Most useful Claude skills.md` is the research behind the site-quality and deploy picks: what's
+popular, what was skipped and why, and how to vet a skill.
 
 To run the whole pipeline on a brief, use `/build-website <describe the site>`.
 
@@ -22,6 +29,11 @@ already covered (design, motion, browser testing). Two project rules apply on to
 
 - **Install only after the user approves**, naming the exact `owner/repo` and skill. Show the install
   count, the author and the skills.sh link first, as the skill describes.
+- **Read the skill before asking.** Install counts can be faked: in 2026 a trojanized skills.sh family
+  reached 1.7M installs before it was caught, and `-y` skips the CLI's audit table. List every file and
+  flag bundled scripts, `allowed-tools`, hooks, remote fetches and `@latest` packages. Check that its
+  trigger words don't collide with an installed skill. After installing, confirm the copy matches
+  upstream and add the commit to README's table.
 - **Install into the project, not globally**, so the skill is committed and tracked in `skills-lock.json`:
   `npx skills add <owner/repo> --skill <name> --agent claude-code --copy -y`. Use the skill's `-g`
   (user-level) form only if the user asks for a global install. After installing, tell the user to start
@@ -44,9 +56,37 @@ Taste and Impeccable both offer to handle new pages. To keep one owner per stage
 - **Verification:** use Playwright MCP to click through the running site: every link, button, form and
   menu. Also check the console, resize to 1440, 768 and 390, and emulate `prefers-reduced-motion`. Taste's
   `inspect.mjs` is the measured gate; Playwright covers behaviour.
+- **Words:** Taste's step 5 (words) leads. Use `copywriting` to draft and sharpen persuasive copy inside
+  Taste's argument and length rules; it never reorders Taste's run. Impeccable `clarify` keeps UX
+  microcopy (labels, errors, empty states). Don't invent stats, customers or quotes: mark missing proof
+  `[NEED: ...]`.
+- **SEO and metadata:** `seo` runs after Taste's build and before the gate. It owns `<head>` metadata
+  (title, description, canonical, Open Graph), JSON-LD, `robots.txt` and `sitemap.xml`, and never changes
+  visible copy or layout. Structured data describes only what the page shows. Its links to
+  `core-web-vitals` and `web-quality-audit` point to skills that aren't installed; use `web-perf` instead.
+- **Load performance:** Impeccable leads audits. `web-perf` supplies the measured numbers (Core Web
+  Vitals, render-blocking resources, the network waterfall) inside `/impeccable audit` and
+  `/impeccable optimize`. Emil's `animation-performance` still owns motion frame drops. `web-perf`'s
+  trace steps expect Chrome DevTools MCP, which this project doesn't configure. Measure with Playwright
+  MCP instead (`browser_evaluate` with a `PerformanceObserver` for LCP and CLS, `browser_network_requests`
+  for the waterfall) and say which measurements couldn't be taken. Don't add Chrome DevTools MCP to
+  `.mcp.json` unless the user asks.
+- **Done means proven:** `verification-before-completion` applies to every stage. Before reporting a stage
+  done, run its check in the same message (Taste's `inspect.mjs` gate, the Playwright pass, the
+  `web-perf` numbers) and quote the result.
+- **Deploying:** `deploy-to-vercel` runs only when the user asks (`skillOverrides` in
+  `.claude/settings.json` hides it from automatic use). These rules override the skill:
+  - Deploy previews, never production, unless the user says production.
+  - Use the pinned `npx vercel@64.5.0`, not `vercel@latest` or an unpinned `npm install -g vercel`.
+  - Ask before any commit or push, and stage the files you mean to ship, not `git add .`.
+  - After deploying, open the URL with Playwright MCP and check that it loads with no console errors.
+    This replaces the skill's "do not fetch the deployed URL" line.
+  - Show a temporary deploy's claim URL only to the user.
 
 Three of Emil's skills (`review-animations`, `pick-ui-library`, `prototype`) only run when the user
-invokes them. Suggest them, but don't run them unasked.
+invokes them. Suggest them, but don't run them unasked. `write-swift` and `animate-expo` serve native
+apps, so `.claude/settings.json` lists them by name only. Load them by name when an iOS or Expo app is
+in scope.
 
 ## Figma MCP server rules
 
@@ -96,3 +136,6 @@ When `CLAUDE_CODE_REMOTE=true`:
   those hosts. If they're blocked, say so. Don't fake the missing result: no placeholder "Figma"
   values and no stock-photo stand-ins presented as found photos. Taste's own fallback is to draw the
   pictures and report that the archives couldn't be searched.
+- **Deploys** need `vercel.com` and `api.vercel.com`, and checking the result needs the deployment's
+  `*.vercel.app` host. These are blocked by default. If they're blocked, say the deploy couldn't run
+  from this session. Don't report a deploy you couldn't make or check.
