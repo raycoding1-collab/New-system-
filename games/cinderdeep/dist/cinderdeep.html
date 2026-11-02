@@ -1213,157 +1213,6 @@ const Art = {
     return c;
   },
 
-  // ---------------- Parallax layers ----------------
-  // L1: far silhouettes that tile horizontally. L2/L3: vertical structures that tile both ways.
-  buildLayers(biomeId, viewW, viewH, px) {
-    const B = BIOMES[biomeId];
-    const rnd = mulberry32(biomeId.length * 7919 + 13);
-    const out = {};
-
-    // L1
-    {
-      const w = 1400, h = Math.ceil(viewH + 180);
-      const c = makeCanvas(w * px, h * px), g = c.getContext('2d');
-      g.scale(px, px);
-      g.fillStyle = B.far;
-      const wrap = (fn) => { fn(0); fn(-w); fn(w); };
-      if (B.spire === 'gothic') {
-        for (let i = 0; i < 16; i++) {
-          const x = rnd() * w, bw = 26 + rnd() * 70, top = h * (0.12 + rnd() * 0.5);
-          wrap((o) => {
-            g.beginPath();
-            g.moveTo(o + x - bw / 2, h);
-            g.lineTo(o + x - bw / 2, top + bw * 0.8);
-            g.lineTo(o + x - bw * 0.18, top + bw * 0.45);
-            g.lineTo(o + x, top - bw * 0.9);
-            g.lineTo(o + x + bw * 0.18, top + bw * 0.45);
-            g.lineTo(o + x + bw / 2, top + bw * 0.8);
-            g.lineTo(o + x + bw / 2, h);
-            g.fill();
-            // pinnacles
-            g.fillRect(o + x - bw / 2 - 3, top + bw * 0.8, 6, -bw * 0.5);
-            g.fillRect(o + x + bw / 2 - 3, top + bw * 0.8, 6, -bw * 0.5);
-          });
-        }
-        // Arched bridges
-        for (let i = 0; i < 7; i++) {
-          const x = rnd() * w, bw = 140 + rnd() * 200, y = h * (0.45 + rnd() * 0.3);
-          wrap((o) => {
-            g.beginPath();
-            g.rect(o + x, y, bw, 16);
-            g.fill();
-            g.beginPath();
-            for (let k = 0; k < 4; k++) {
-              const ax = o + x + (k + 0.5) * bw / 4;
-              g.moveTo(ax - bw / 9, y + 16); g.quadraticCurveTo(ax, y + 50, ax + bw / 9, y + 16);
-            }
-            g.fill();
-          });
-        }
-      } else if (B.spire === 'stalactite') {
-        for (let i = 0; i < 26; i++) {
-          const x = rnd() * w, bw = 20 + rnd() * 80, len = h * (0.15 + rnd() * 0.45);
-          wrap((o) => {
-            g.beginPath(); g.moveTo(o + x - bw / 2, 0);
-            g.quadraticCurveTo(o + x - bw * 0.2, len * 0.6, o + x, len);
-            g.quadraticCurveTo(o + x + bw * 0.2, len * 0.6, o + x + bw / 2, 0); g.fill();
-          });
-        }
-        for (let i = 0; i < 18; i++) {
-          const x = rnd() * w, bw = 40 + rnd() * 120, ht = h * (0.1 + rnd() * 0.35);
-          wrap((o) => {
-            g.beginPath(); g.moveTo(o + x - bw / 2, h);
-            g.quadraticCurveTo(o + x - bw * 0.15, h - ht, o + x, h - ht);
-            g.quadraticCurveTo(o + x + bw * 0.15, h - ht, o + x + bw / 2, h); g.fill();
-          });
-        }
-      } else {
-        for (let i = 0; i < 9; i++) {
-          const x = (i + rnd() * 0.5) * (w / 9), bw = 50 + rnd() * 40;
-          wrap((o) => {
-            g.fillRect(o + x - bw / 2, 0, bw, h);
-            g.fillRect(o + x - bw / 2 - 10, h * 0.3, bw + 20, 14);
-            g.fillRect(o + x - bw / 2 - 6, h * 0.3 + 14, bw + 12, 8);
-          });
-        }
-        // Hanging chandeliers
-        for (let i = 0; i < 6; i++) {
-          const x = rnd() * w, y = h * (0.2 + rnd() * 0.25), r = 30 + rnd() * 30;
-          wrap((o) => {
-            g.fillRect(o + x - 1, 0, 2, y);
-            g.beginPath(); g.ellipse(o + x, y, r, r * 0.22, 0, 0, TAU); g.fill();
-            for (let k = -3; k <= 3; k++) g.fillRect(o + x + k * r / 3.5 - 2, y - 12, 4, 12);
-          });
-        }
-      }
-      // Distant warm windows / candles.
-      for (let i = 0; i < 40; i++) {
-        const x = rnd() * w, y = h * (0.25 + rnd() * 0.6);
-        g.fillStyle = `rgba(255,190,120,${0.15 + rnd() * 0.3})`;
-        g.fillRect(x, y, 1.5 + rnd() * 1.5, 2 + rnd() * 3);
-      }
-      const fog = g.createLinearGradient(0, h * 0.35, 0, h);
-      fog.addColorStop(0, hexA(B.fog, 0)); fog.addColorStop(1, hexA(B.fog, 0.85));
-      g.fillStyle = fog; g.fillRect(0, 0, w, h);
-      out.l1 = { c, w, h, f: 0.12 };
-    }
-
-    // L2 and L3: tile in both axes. Periods divide the tile height so seams never show.
-    const vert = (size, color, pillars, chains, f, extra) => {
-      const c = makeCanvas(size * px, size * px), g = c.getContext('2d');
-      g.scale(px, px);
-      g.fillStyle = color; g.strokeStyle = color;
-      for (let i = 0; i < pillars; i++) {
-        const x = (i + 0.2 + rnd() * 0.6) * (size / pillars), bw = extra.pw[0] + rnd() * extra.pw[1];
-        const draw = (o) => {
-          g.fillStyle = color;
-          g.fillRect(o + x - bw / 2, 0, bw, size);
-          // faint lit edge and mortar lines give the pillar some form
-          g.fillStyle = 'rgba(255,255,255,0.035)';
-          g.fillRect(o + x - bw / 2, 0, Math.max(3, bw * 0.12), size);
-          g.fillStyle = 'rgba(0,0,0,0.18)';
-          g.fillRect(o + x + bw / 2 - bw * 0.22, 0, bw * 0.22, size);
-          for (let yy = 0; yy < size; yy += 50) g.fillRect(o + x - bw / 2, yy, bw, 1.5);
-          g.fillStyle = color;
-          const bands = extra.bands;
-          for (let k = 0; k < bands; k++) {
-            const y = (k + 0.5) * (size / bands);
-            g.fillRect(o + x - bw / 2 - 6, y, bw + 12, 10);
-            g.fillRect(o + x - bw / 2 - 3, y + 10, bw + 6, 5);
-          }
-        };
-        draw(0); if (x - bw < 0) draw(size); if (x + bw > size) draw(-size);
-      }
-      g.lineWidth = 2.2;
-      for (let i = 0; i < chains; i++) {
-        const x = rnd() * size, link = 20;
-        for (let y = 0; y < size; y += link) {
-          g.beginPath();
-          if ((y / link) % 2 === 0) g.ellipse(x, y + link / 2, 3.2, link * 0.62, 0, 0, TAU);
-          else { g.moveTo(x, y); g.lineTo(x, y + link); }
-          g.stroke();
-        }
-      }
-      if (extra.roots) {
-        g.lineWidth = 3;
-        for (let i = 0; i < extra.roots; i++) {
-          const x = rnd() * size, amp = 6 + rnd() * 10, ph = rnd() * TAU;
-          g.beginPath();
-          for (let y = 0; y <= size; y += 10) {
-            const xx = x + Math.sin((y / size) * TAU * 2 + ph) * amp;
-            if (y === 0) g.moveTo(xx, y); else g.lineTo(xx, y);
-          }
-          g.stroke();
-        }
-      }
-      return { c, w: size, h: size, f };
-    };
-    const stal = B.spire === 'stalactite';
-    out.l2 = vert(1000, B.mid, stal ? 2 : 3, 4, 0.32, { pw: [36, 40], bands: 4, roots: stal ? 7 : 0 });
-    out.l3 = vert(1200, B.near, 2, 2, 0.58, { pw: [90, 70], bands: 3, roots: stal ? 4 : 0 });
-    return out;
-  },
-
   // ---------------- Terrain chunks ----------------
   renderChunk(room, cx, cy, size, s) {
     const B = BIOMES[room.biome];
@@ -1416,6 +1265,21 @@ const Art = {
         let px2 = x * T + hash2(x, y, seed + 5) * T, py2 = y * T + hash2(x, y, seed + 6) * T;
         g.moveTo(px2, py2);
         for (let k = 0; k < 3; k++) { px2 += (hash2(x, y, seed + 7 + k) - 0.5) * 16; py2 += 4 + hash2(x, y, seed + 9 + k) * 6; g.lineTo(px2, py2); }
+        g.stroke();
+      }
+    }
+    // 3b. Strata: faint layered bands whose curve depends only on world position, so they run on across
+    //     neighbouring tiles and chunks.
+    g.lineWidth = 1;
+    for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+      if (x < 0 || y < 0 || x >= room.w || y >= room.h || !S(x, y)) continue;
+      if (hash2(x >> 1, y, seed + 15) < 0.35) continue;
+      const X = x * T, Y = y * T;
+      for (let k = 0; k < 3; k++) {
+        const base = Y + 5 + k * 11;
+        g.strokeStyle = hexA(k === 1 ? B.fill[0] : B.fill[1], 0.8);
+        g.beginPath();
+        for (let i = 0; i <= 4; i++) { const px2 = X + i * 8; const py2 = base + Math.sin(px2 * 0.045 + y * 1.7) * 2.2; i ? g.lineTo(px2, py2) : g.moveTo(px2, py2); }
         g.stroke();
       }
     }
@@ -1503,6 +1367,65 @@ const Art = {
         }
       }
     }
+    // 5b. Moss and fungus on ledges, crystals on walls, long wax stalactites and roots under ceilings
+    const moss = MOSS[room.biome], crystal = CRYSTAL[room.biome], glow = GLOW[room.biome];
+    for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+      if (x < 0 || y < 0 || x >= room.w || y >= room.h || !S(x, y)) continue;
+      const X = x * T, Y = y * T;
+      const above = room.ch(x, y - 1);
+      if (y > 0 && !S(x, y - 1) && above !== '^' && above !== '~' && above !== '-') {
+        const h = hash2(x, y, seed + 100);
+        if (h < 0.42) {
+          const n = 2 + ((h * 10) | 0) % 3;
+          for (let k = 0; k < n; k++) {
+            const mx = X + 3 + hash2(x, y + k, seed + 101) * (T - 6), mr = 3 + hash2(x + k, y, seed + 102) * 5;
+            g.fillStyle = moss; g.beginPath(); g.ellipse(mx, Y - 1, mr, mr * 0.7, 0, Math.PI, 0); g.fill();
+            g.fillStyle = hexA(B.top, 0.35); g.beginPath(); g.ellipse(mx - mr * 0.2, Y - mr * 0.45, mr * 0.45, mr * 0.18, 0, 0, TAU); g.fill();
+          }
+        }
+        if (h > 0.9) {
+          // a small mushroom; in the caverns its cap glows
+          const mx = X + 6 + hash2(x, y, seed + 103) * 20, mh = 6 + hash2(x, y, seed + 104) * 7;
+          g.strokeStyle = hexA(B.wax, 0.7); g.lineWidth = 1.6;
+          g.beginPath(); g.moveTo(mx, Y); g.quadraticCurveTo(mx + 1, Y - mh * 0.5, mx, Y - mh); g.stroke();
+          if (room.biome === 'drip') { const gr = g.createRadialGradient(mx, Y - mh, 0, mx, Y - mh, 14); gr.addColorStop(0, `rgba(${glow},0.55)`); gr.addColorStop(1, `rgba(${glow},0)`); g.fillStyle = gr; g.fillRect(mx - 14, Y - mh - 14, 28, 28); }
+          g.fillStyle = room.biome === 'drip' ? `rgb(${glow})` : hexA(B.wax, 0.85);
+          g.beginPath(); g.ellipse(mx, Y - mh, 4.5, 2.6, 0, Math.PI, 0); g.fill();
+        }
+      }
+      for (const side of [-1, 1]) {
+        if (S(x + side, y) || hash2(x * side, y, seed + 110) > 0.035) continue;
+        const ex = side < 0 ? X : X + T, cy2 = Y + 8 + hash2(x, y, seed + 111) * 16;
+        for (let k = 0; k < 3; k++) {
+          // short, upward-leaning shards in the area's tint, so they never read as thorns
+          const len = 5 + hash2(x, y + k, seed + 112) * 5, a = -0.9 + (k - 1) * 0.35;
+          const tx2 = ex + side * Math.cos(a) * len, ty2 = cy2 + Math.sin(a) * len - 3;
+          g.fillStyle = hexA(crystal, 0.4);
+          g.beginPath(); g.moveTo(ex, cy2 - 3 + k * 2); g.lineTo(tx2, ty2); g.lineTo(ex, cy2 + 2 + k * 2); g.closePath(); g.fill();
+          g.fillStyle = 'rgba(255,255,255,0.18)';
+          g.beginPath(); g.moveTo(ex, cy2 - 3 + k * 2); g.lineTo(tx2, ty2); g.lineTo(ex, cy2 - 1 + k * 2); g.closePath(); g.fill();
+        }
+      }
+      if (y + 1 < room.h && !S(x, y + 1) && room.ch(x, y + 1) !== '-') {
+        const h = hash2(x, y, seed + 120);
+        if (h < 0.1) {
+          const sx = X + 6 + hash2(x, y, seed + 121) * 20, len = 26 + hash2(x, y, seed + 122) * 40, w = 8 + hash2(x, y, seed + 123) * 8;
+          const gr = g.createLinearGradient(0, Y + T, 0, Y + T + len);
+          gr.addColorStop(0, B.fill[0]); gr.addColorStop(0.7, B.fill[1]); gr.addColorStop(1, hexA(B.wax, 0.6));
+          g.fillStyle = gr;
+          g.beginPath(); g.moveTo(sx - w / 2, Y + T - 1); g.quadraticCurveTo(sx - w * 0.15, Y + T + len * 0.6, sx, Y + T + len);
+          g.quadraticCurveTo(sx + w * 0.15, Y + T + len * 0.6, sx + w / 2, Y + T - 1); g.closePath(); g.fill();
+          g.strokeStyle = hexA(B.edge, 0.35); g.lineWidth = 1;
+          g.beginPath(); g.moveTo(sx - w / 2 + 1, Y + T); g.quadraticCurveTo(sx - w * 0.15, Y + T + len * 0.6, sx, Y + T + len); g.stroke();
+        } else if (room.biome === 'drip' && h > 0.86) {
+          const rx = X + 8 + hash2(x, y, seed + 124) * 16, len = 20 + hash2(x, y, seed + 125) * 50;
+          g.strokeStyle = B.fill[0]; g.lineWidth = 2.2;
+          g.beginPath(); g.moveTo(rx, Y + T);
+          for (let k = 0; k <= len; k += 6) g.lineTo(rx + Math.sin(k * 0.12 + x) * 3, Y + T + k);
+          g.stroke();
+        }
+      }
+    }
     // 6. Thorns, ledges and candles
     for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
       if (x < 0 || y < 0 || x >= room.w || y >= room.h) continue;
@@ -1563,6 +1486,13 @@ function drawCandleBody(g, cd, B) {
   g.beginPath(); g.ellipse(cd.x, cd.y - 1, cd.spread, 2.5, 0, Math.PI, 0); g.fill();
 }
 
+const INK = '#07060b';
+// A soft dark ellipse under a figure standing on the ground, so it sits on the floor instead of floating.
+function contactShadow(ctx, x, y, w) {
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath(); ctx.ellipse(x, y - 0.5, w, w * 0.2, 0, 0, TAU); ctx.fill();
+}
+
 function hexA(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
@@ -1586,6 +1516,443 @@ function drawFlame(ctx, x, y, h, w, t, lean, core) {
   ctx.arc(x, y, w * 0.5, 0, Math.PI);
   ctx.fill();
 }
+
+</script>
+<script>
+/* js/scenery.js */
+'use strict';
+// Painted scenery. Each area gets three parallax layers (far, mid, near) and every room gets a back wall
+// built from its own ledges and ceilings. All of it is drawn once into canvases; a frame only copies them.
+
+const GLOW = { wicks: '255,205,140', drip: '150,240,215', hall: '255,170,105' };
+const MOSS = { wicks: '#2b3858', drip: '#2a6656', hall: '#5c3828' };
+const CRYSTAL = { wicks: '#a9c4ff', drip: '#9ff0d8', hall: '#ffc27a' };
+
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const r = Math.round(((pa >> 16) & 255) * (1 - t) + ((pb >> 16) & 255) * t);
+  const gg = Math.round(((pa >> 8) & 255) * (1 - t) + ((pb >> 8) & 255) * t);
+  const bl = Math.round((pa & 255) * (1 - t) + (pb & 255) * t);
+  return '#' + ((1 << 24) | (r << 16) | (gg << 8) | bl).toString(16).slice(1);
+}
+
+function archPath(g, cx, base, w, h) {
+  const r = w / 2;
+  g.moveTo(cx - r, base);
+  g.lineTo(cx - r, base - h + r * 1.05);
+  g.quadraticCurveTo(cx - r, base - h + r * 0.12, cx, base - h);
+  g.quadraticCurveTo(cx + r, base - h + r * 0.12, cx + r, base - h + r * 1.05);
+  g.lineTo(cx + r, base);
+  g.closePath();
+}
+
+function radial(g, x, y, r, rgb, a) {
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, `rgba(${rgb},${a})`);
+  gr.addColorStop(0.4, `rgba(${rgb},${a * 0.35})`);
+  gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr;
+  g.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+// A hooded figure holding up a candle: the statues that line the city's arcades.
+function statue(g, x, base, s, col, rgb) {
+  g.fillStyle = col;
+  g.beginPath();
+  g.moveTo(x - 14 * s, base);
+  g.quadraticCurveTo(x - 15 * s, base - 40 * s, x - 9 * s, base - 62 * s);
+  g.quadraticCurveTo(x - 10 * s, base - 82 * s, x, base - 86 * s);
+  g.quadraticCurveTo(x + 10 * s, base - 82 * s, x + 9 * s, base - 62 * s);
+  g.quadraticCurveTo(x + 15 * s, base - 40 * s, x + 14 * s, base);
+  g.closePath(); g.fill();
+  g.fillRect(x - 18 * s, base - 6 * s, 36 * s, 8 * s);
+  g.fillRect(x + 8 * s, base - 70 * s, 4 * s, 22 * s);
+  radial(g, x + 10 * s, base - 76 * s, 26 * s, rgb, 0.55);
+  g.fillStyle = `rgba(${rgb},0.95)`;
+  g.beginPath(); g.ellipse(x + 10 * s, base - 76 * s, 1.8 * s, 3.2 * s, 0, 0, TAU); g.fill();
+}
+
+function chain(g, x, y0, y1, col, w = 1.6) {
+  g.strokeStyle = col; g.lineWidth = w;
+  for (let y = y0; y < y1; y += 9) {
+    g.beginPath();
+    if (((y - y0) / 9) % 2 === 0) g.ellipse(x, y + 4.5, 2.2, 5, 0, 0, TAU); else { g.moveTo(x, y); g.lineTo(x, y + 9); }
+    g.stroke();
+  }
+}
+
+function cage(g, x, y, col, rgb, lit) {
+  g.strokeStyle = col; g.lineWidth = 1.6;
+  g.beginPath(); g.ellipse(x, y + 22, 11, 20, 0, 0, TAU); g.stroke();
+  for (const dx of [-5, 0, 5]) { g.beginPath(); g.moveTo(x + dx, y + 3); g.lineTo(x + dx * 1.4, y + 42); g.stroke(); }
+  g.fillStyle = col; g.fillRect(x - 13, y + 40, 26, 4);
+  if (lit) { radial(g, x, y + 26, 40, rgb, 0.5); g.fillStyle = `rgba(${rgb},0.9)`; g.beginPath(); g.ellipse(x, y + 28, 2, 3.5, 0, 0, TAU); g.fill(); }
+}
+
+function stalactite(g, x, top, w, len, col, tip) {
+  const gr = g.createLinearGradient(0, top, 0, top + len);
+  gr.addColorStop(0, col); gr.addColorStop(0.75, col); gr.addColorStop(1, tip || col);
+  g.fillStyle = gr;
+  g.beginPath(); g.moveTo(x - w / 2, top);
+  g.quadraticCurveTo(x - w * 0.18, top + len * 0.6, x, top + len);
+  g.quadraticCurveTo(x + w * 0.18, top + len * 0.6, x + w / 2, top); g.closePath(); g.fill();
+}
+
+function stalagmite(g, x, base, w, ht, col) {
+  g.fillStyle = col;
+  g.beginPath(); g.moveTo(x - w / 2, base);
+  g.quadraticCurveTo(x - w * 0.15, base - ht * 0.7, x, base - ht);
+  g.quadraticCurveTo(x + w * 0.15, base - ht * 0.7, x + w / 2, base); g.closePath(); g.fill();
+}
+
+const Scenery = {
+  // --------------------------------------------------------------- parallax layers
+  // Each layer tiles horizontally and is tall enough to cover the tallest room of its area, so it can be
+  // anchored to the camera vertically instead of repeating. `gy` is the layer's ground line.
+  layers(biomeId, viewW, viewH, px, roomH) {
+    const B = BIOMES[biomeId], rgb = GLOW[biomeId];
+    const rnd = mulberry32(strHash(biomeId) % 99991 + 7);
+    const mk = (f, w, groundK) => {
+      const travel = Math.max(0, (roomH - viewH) / 2) * f;
+      const h = Math.ceil(viewH + travel * 2 + 120);
+      const c = makeCanvas(w * px, h * px), g = c.getContext('2d');
+      g.scale(px, px);
+      return { c, g, w, h, f, gy: h / 2 + viewH * groundK };
+    };
+    const wrap = (L, x, span, fn) => { fn(x); if (x - span < 0) fn(x + L.w); if (x + span > L.w) fn(x - L.w); };
+    const fogBand = (L, y0, y1, a) => {
+      const gr = L.g.createLinearGradient(0, y0, 0, y1);
+      gr.addColorStop(0, hexA(B.fog, 0)); gr.addColorStop(1, hexA(B.fog, a));
+      L.g.fillStyle = gr; L.g.fillRect(0, y0, L.w, y1 - y0);
+      L.g.fillStyle = hexA(B.fog, a); L.g.fillRect(0, y1, L.w, L.h - y1);
+    };
+
+    const far = mk(0.08, 1800, 0.28), mid = mk(0.26, 1400, 0.34), near = mk(0.5, 1200, 0.46);
+    const farCol = mixHex(B.far, B.fog, 0.32), farRim = mixHex(farCol, B.top, 0.18);
+    const midCol = B.mid, midRim = mixHex(B.mid, B.top, 0.2);
+    const nearCol = B.near, nearRim = mixHex(B.near, B.top, 0.14);
+
+    // ---------------- FAR ----------------
+    {
+      const L = far, g = L.g, gy = L.gy;
+      for (let i = 0; i < 4; i++) radial(g, rnd() * L.w, gy - 120 - rnd() * 120, 240 + rnd() * 160, rgb, 0.07 + rnd() * 0.05);
+      if (B.spire === 'gothic') {
+        for (let i = 0; i < 26; i++) {
+          const x = rnd() * L.w, bw = 26 + rnd() * 70, top = gy - 90 - rnd() * 260;
+          wrap(L, x, bw, (xx) => {
+            const gr = g.createLinearGradient(0, top - bw, 0, gy);
+            gr.addColorStop(0, farRim); gr.addColorStop(0.5, farCol); gr.addColorStop(1, farCol);
+            g.fillStyle = gr;
+            g.beginPath();
+            g.moveTo(xx - bw / 2, L.h); g.lineTo(xx - bw / 2, top + bw * 0.7);
+            g.lineTo(xx - bw * 0.2, top + bw * 0.35); g.lineTo(xx, top - bw * 1.1);
+            g.lineTo(xx + bw * 0.2, top + bw * 0.35); g.lineTo(xx + bw / 2, top + bw * 0.7); g.lineTo(xx + bw / 2, L.h);
+            g.closePath(); g.fill();
+            g.fillRect(xx - bw / 2 - 4, top + bw * 0.7 - bw * 0.55, 5, bw * 0.55);
+            g.fillRect(xx + bw / 2 - 1, top + bw * 0.7 - bw * 0.55, 5, bw * 0.55);
+            const nw = 1 + ((bw / 30) | 0);
+            for (let k = 0; k < nw; k++) {
+              if (rnd() < 0.35) continue;
+              const wx = xx - bw / 2 + (k + 0.5) * (bw / nw), wy = top + bw * 0.9 + rnd() * 60;
+              g.fillStyle = `rgba(${rgb},${0.25 + rnd() * 0.4})`;
+              g.beginPath(); archPath(g, wx, wy + 14, 4, 14); g.fill();
+            }
+          });
+        }
+        for (let i = 0; i < 4; i++) {
+          const x = rnd() * L.w, r = 50 + rnd() * 50, y = 30 + rnd() * 60;
+          wrap(L, x, r, (xx) => {
+            g.strokeStyle = hexA(farCol, 0.8); g.lineWidth = 2;
+            g.beginPath(); g.moveTo(xx, -L.h); g.lineTo(xx, y); g.stroke();
+            g.beginPath(); g.ellipse(xx, y, r, r * 0.2, 0, 0, TAU); g.stroke();
+            for (let k = -3; k <= 3; k++) { g.fillStyle = `rgba(${rgb},0.35)`; g.fillRect(xx + k * r / 3.4 - 1, y - 9, 2, 5); }
+          });
+        }
+      } else if (B.spire === 'stalactite') {
+        for (let i = 0; i < 30; i++) {
+          const x = rnd() * L.w, w = 24 + rnd() * 80, len = 60 + rnd() * (gy * 0.45);
+          wrap(L, x, w, (xx) => stalactite(g, xx, -40, w, len + 40, farCol, farRim));
+        }
+        for (let i = 0; i < 22; i++) {
+          const x = rnd() * L.w, w = 40 + rnd() * 120, ht = 40 + rnd() * 160;
+          wrap(L, x, w, (xx) => stalagmite(g, xx, gy + 30, w, ht, farCol));
+        }
+        // a slow fall of molten wax in the distance
+        for (let i = 0; i < 2; i++) {
+          const x = rnd() * L.w;
+          wrap(L, x, 30, (xx) => {
+            const gr = g.createLinearGradient(xx - 10, 0, xx + 10, 0);
+            gr.addColorStop(0, 'rgba(255,170,90,0)'); gr.addColorStop(0.5, 'rgba(255,170,90,0.22)'); gr.addColorStop(1, 'rgba(255,170,90,0)');
+            g.fillStyle = gr; g.fillRect(xx - 10, 0, 20, gy);
+            radial(g, xx, gy, 70, '255,150,70', 0.25);
+          });
+        }
+        for (let i = 0; i < 6; i++) radial(g, rnd() * L.w, gy + 10, 60 + rnd() * 60, rgb, 0.18);
+      } else {
+        // Hall: tall windows between colossal pillars
+        const bays = 6, bw = L.w / bays;
+        for (let i = 0; i < bays; i++) {
+          const cx = (i + 0.5) * bw, ww = 70 + rnd() * 30, wh = 260 + rnd() * 140;
+          const wgr = g.createLinearGradient(0, gy - wh, 0, gy);
+          wgr.addColorStop(0, `rgba(${rgb},0.38)`); wgr.addColorStop(1, `rgba(${rgb},0.12)`);
+          g.fillStyle = wgr; g.beginPath(); archPath(g, cx, gy - 40, ww, wh); g.fill();
+          g.strokeStyle = farCol; g.lineWidth = 4;
+          g.beginPath(); g.moveTo(cx, gy - 40); g.lineTo(cx, gy - 40 - wh + 10);
+          for (let k = 1; k < 4; k++) { const yy = gy - 40 - (wh * k) / 4; g.moveTo(cx - ww / 2, yy); g.lineTo(cx + ww / 2, yy); }
+          g.stroke();
+          radial(g, cx, gy - 40 - wh * 0.5, wh * 0.6, rgb, 0.08);
+          const px2 = i * bw;
+          const gr = g.createLinearGradient(px2 - 40, 0, px2 + 40, 0);
+          gr.addColorStop(0, farCol); gr.addColorStop(0.35, farRim); gr.addColorStop(1, farCol);
+          g.fillStyle = gr; g.fillRect(px2 - 40, 0, 80, L.h);
+          if (i === 0) { g.fillStyle = gr; g.fillRect(L.w - 40, 0, 40, L.h); }
+        }
+        g.fillStyle = farCol; g.fillRect(0, gy - 40, L.w, L.h);
+      }
+      fogBand(L, gy - 160, gy + 40, 0.75);
+    }
+
+    // ---------------- MID ----------------
+    {
+      const L = mid, g = L.g, gy = L.gy;
+      if (B.spire === 'gothic' || B.spire === 'pillars') {
+        const hall = B.spire === 'pillars';
+        const P = 140, pw = 24, ah = hall ? 250 : 200, top = gy - (hall ? 420 : 360);
+        const wallGr = g.createLinearGradient(0, top, 0, gy);
+        wallGr.addColorStop(0, midRim); wallGr.addColorStop(0.25, midCol); wallGr.addColorStop(1, midCol);
+        g.fillStyle = wallGr; g.fillRect(0, top, L.w, L.h - top);
+        // ragged, broken top edge
+        g.globalCompositeOperation = 'destination-out';
+        g.fillStyle = '#000';
+        g.beginPath(); g.moveTo(0, top - 1);
+        for (let x = 0; x <= L.w; x += 20) g.lineTo(x, top + (x % 140 === 0 ? 0 : rnd() * 18) + (rnd() < 0.08 ? rnd() * 70 : 0));
+        g.lineTo(L.w, top - 1); g.closePath(); g.fill();
+        // arcade openings and an upper tier of windows
+        for (let x = P / 2; x < L.w; x += P) {
+          g.beginPath(); archPath(g, x, gy, P - pw, ah); g.fill();
+          g.beginPath(); archPath(g, x, gy - ah - 50, 36, 80); g.fill();
+        }
+        // ruined bays
+        for (let i = 0; i < 2; i++) {
+          const x = (((rnd() * L.w / P) | 0) + 0.5) * P;
+          g.beginPath(); g.moveTo(x - P * 0.6, gy - ah + 40);
+          for (let k = 0; k <= 8; k++) g.lineTo(x - P * 0.6 + (k / 8) * P * 1.2, top - 10 + rnd() * 60);
+          g.lineTo(x + P * 0.6, gy - ah + 40); g.closePath(); g.fill();
+        }
+        g.globalCompositeOperation = 'source-over';
+        // stone rim light and mouldings
+        g.strokeStyle = hexA(midRim, 0.55); g.lineWidth = 2;
+        for (let x = P / 2; x < L.w; x += P) {
+          g.beginPath(); archPath(g, x, gy, P - pw, ah); g.stroke();
+          g.fillStyle = midRim; g.fillRect(x - P / 2 - pw / 2 - 3, gy - 24, pw + 6, 6);
+        }
+        g.fillStyle = hexA(midRim, 0.6); g.fillRect(0, gy - ah - 6, L.w, 4);
+        // what stands inside the arches
+        for (let x = P / 2; x < L.w; x += P) {
+          const r = rnd();
+          if (r < 0.3) statue(g, x, gy, hall ? 1.25 : 1.05, mixHex(midCol, B.fog, 0.25), rgb);
+          else if (hall && r < 0.6) {
+            // a hanging banner
+            const bw = 40, bt = gy - ah + 30, bh = 120 + rnd() * 40;
+            g.fillStyle = '#5a1a14';
+            g.beginPath(); g.moveTo(x - bw / 2, bt); g.lineTo(x + bw / 2, bt); g.lineTo(x + bw / 2, bt + bh);
+            g.lineTo(x, bt + bh - 18); g.lineTo(x - bw / 2, bt + bh); g.closePath(); g.fill();
+            g.strokeStyle = 'rgba(230,170,90,0.55)'; g.lineWidth = 2;
+            g.beginPath(); g.moveTo(x - bw / 2 + 5, bt + 6); g.lineTo(x - bw / 2 + 5, bt + bh - 6); g.moveTo(x + bw / 2 - 5, bt + 6); g.lineTo(x + bw / 2 - 5, bt + bh - 6); g.stroke();
+            g.beginPath(); g.arc(x, bt + 45, 9, 0, TAU); g.stroke();
+          } else if (r < 0.55) chain(g, x, gy - ah + 6, gy - ah + 60 + rnd() * 50, hexA(midRim, 0.6));
+        }
+        g.fillStyle = midCol; g.fillRect(0, gy, L.w, L.h - gy);
+      } else {
+        // Drip: natural rock columns joined by arches, roots with glowing bulbs
+        g.fillStyle = midCol;
+        g.fillRect(0, 0, L.w, 40);
+        for (let i = 0; i < 7; i++) {
+          const x = (i + 0.3 + rnd() * 0.4) * (L.w / 7), w = 50 + rnd() * 60;
+          wrap(L, x, w * 2, (xx) => {
+            const gr = g.createLinearGradient(xx - w, 0, xx + w, 0);
+            gr.addColorStop(0, midCol); gr.addColorStop(0.35, midRim); gr.addColorStop(0.6, midCol); gr.addColorStop(1, midCol);
+            g.fillStyle = gr;
+            g.beginPath(); g.moveTo(xx - w * 1.4, 0);
+            g.quadraticCurveTo(xx - w * 0.3, gy * 0.45, xx - w * 0.4, gy * 0.6);
+            g.quadraticCurveTo(xx - w * 0.6, gy * 0.85, xx - w * 1.2, gy + 10);
+            g.lineTo(xx + w * 1.2, gy + 10);
+            g.quadraticCurveTo(xx + w * 0.6, gy * 0.85, xx + w * 0.4, gy * 0.6);
+            g.quadraticCurveTo(xx + w * 0.3, gy * 0.45, xx + w * 1.4, 0);
+            g.closePath(); g.fill();
+          });
+        }
+        for (let i = 0; i < 16; i++) {
+          const x = rnd() * L.w, len = 60 + rnd() * 200, amp = 4 + rnd() * 8;
+          wrap(L, x, 20, (xx) => {
+            g.strokeStyle = midCol; g.lineWidth = 3;
+            g.beginPath(); g.moveTo(xx, 0);
+            for (let y = 0; y <= len; y += 10) g.lineTo(xx + Math.sin(y * 0.05 + i) * amp, y);
+            g.stroke();
+            radial(g, xx + Math.sin(len * 0.05 + i) * amp, len + 4, 16, rgb, 0.6);
+          });
+        }
+        for (let i = 0; i < 14; i++) {
+          const x = rnd() * L.w, w = 30 + rnd() * 70, ht = 30 + rnd() * 110;
+          wrap(L, x, w, (xx) => stalagmite(g, xx, gy + 20, w, ht, midCol));
+        }
+        g.fillStyle = midCol; g.fillRect(0, gy, L.w, L.h - gy);
+        for (let i = 0; i < 10; i++) radial(g, rnd() * L.w, gy - 4, 20 + rnd() * 30, rgb, 0.3);
+      }
+      fogBand(L, gy - 90, gy + 60, 0.5);
+    }
+
+    // ---------------- NEAR ----------------
+    {
+      const L = near, g = L.g, gy = L.gy;
+      if (B.spire === 'stalactite') {
+        for (let i = 0; i < 6; i++) {
+          const x = rnd() * L.w, w = 60 + rnd() * 90, len = 120 + rnd() * 200;
+          wrap(L, x, w, (xx) => stalactite(g, xx, -60, w, len + 60, nearCol, nearRim));
+        }
+        for (let i = 0; i < 8; i++) {
+          const x = rnd() * L.w;
+          wrap(L, x, 20, (xx) => {
+            g.strokeStyle = nearCol; g.lineWidth = 5;
+            g.beginPath(); g.moveTo(xx, -10);
+            for (let y = 0; y < 160 + i * 20; y += 12) g.lineTo(xx + Math.sin(y * 0.04 + i) * 10, y);
+            g.stroke();
+          });
+        }
+      } else {
+        for (let i = 0; i < 3; i++) {
+          const x = (i + 0.2 + rnd() * 0.6) * (L.w / 3), w = 70 + rnd() * 50;
+          wrap(L, x, w, (xx) => {
+            const gr = g.createLinearGradient(xx - w / 2, 0, xx + w / 2, 0);
+            gr.addColorStop(0, nearCol); gr.addColorStop(0.22, nearRim); gr.addColorStop(0.5, nearCol); gr.addColorStop(1, mixHex(nearCol, '#000000', 0.4));
+            g.fillStyle = gr;
+            g.fillRect(xx - w / 2, -10, w, gy + 10);
+            const cap = gy - 300 - rnd() * 80;
+            g.fillRect(xx - w / 2 - 14, cap, w + 28, 22);
+            g.fillRect(xx - w / 2 - 8, cap + 22, w + 16, 10);
+            g.fillRect(xx - w / 2 - 12, gy - 26, w + 24, 26);
+            // wax running down from the capital
+            g.fillStyle = hexA(B.wax, 0.28);
+            for (let k = 0; k < 4; k++) {
+              const dx = xx - w / 2 + 8 + rnd() * (w - 16), len = 30 + rnd() * 120;
+              g.beginPath(); g.moveTo(dx - 3, cap + 32); g.lineTo(dx - 2, cap + 32 + len); g.arc(dx, cap + 32 + len, 2.5, Math.PI, 0, true); g.lineTo(dx + 3, cap + 32); g.closePath(); g.fill();
+            }
+          });
+        }
+        for (let i = 0; i < 3; i++) {
+          const x = rnd() * L.w, y1 = 60 + rnd() * 140;
+          wrap(L, x, 20, (xx) => { chain(g, xx, -20, y1, nearCol, 3); cage(g, xx, y1, nearCol, rgb, rnd() < 0.5); });
+        }
+      }
+      // rubble along the ground
+      g.fillStyle = nearCol;
+      g.beginPath(); g.moveTo(0, L.h);
+      for (let x = 0; x <= L.w; x += 30) g.lineTo(x, gy - 6 - Math.abs(Math.sin(x * 0.013 + 1.3)) * 30 - rnd() * 10);
+      g.lineTo(L.w, gy - 6 - Math.abs(Math.sin(L.w * 0.013 + 1.3)) * 30); g.lineTo(L.w, L.h); g.closePath(); g.fill();
+      fogBand(L, gy - 40, gy + 90, 0.35);
+    }
+
+    for (const L of [far, mid, near]) delete L.g;
+    return { l1: far, l2: mid, l3: near };
+  },
+
+  // --------------------------------------------------------------- per-room back wall
+  // Drawn at 0.9 parallax behind the playfield. Features are placed from the room's own floors and
+  // ceilings, mapped so they sit behind the ledges they belong to when the camera is nearby.
+  backdrop(room, viewW, viewH, px) {
+    const B = room.B, rgb = GLOW[room.biome];
+    const W = room.w * T, H = room.h * T, s = Math.min(px * 0.6, 1.1);
+    const c = makeCanvas(W * s, H * s), g = c.getContext('2d');
+    g.scale(s, s);
+    const rnd = mulberry32(room.seed + 4242);
+    const lx = (wx) => 0.9 * wx + 0.05 * viewW, ly = (wy) => 0.9 * wy + 0.05 * viewH;
+    const col = mixHex(B.mid, B.near, 0.45), rim = mixHex(col, B.top, 0.16), deep = mixHex(B.near, '#000000', 0.35);
+    const air = (x, y) => room.inside(x, y) && !room.solid(x, y) && room.ch(x, y) !== '-';
+    const gothic = room.biome !== 'drip';
+
+    // Floors: back arches, alcoves and statues (city areas) or rock pillars and crystals (caverns)
+    for (let y = 2; y < room.h; y++) {
+      let x = 1;
+      while (x < room.w - 1) {
+        if (!(room.rock(x, y) && air(x, y - 1))) { x++; continue; }
+        let x1 = x;
+        while (x1 + 1 < room.w - 1 && room.rock(x1 + 1, y) && air(x1 + 1, y - 1)) x1++;
+        for (let fx = x + 1 + ((rnd() * 3) | 0); fx + 2 <= x1; fx += 6 + ((rnd() * 4) | 0)) {
+          let head = 0;
+          while (head < 9 && air(fx, y - 1 - head) && air(fx + 1, y - 1 - head)) head++;
+          if (head < 4) continue;
+          const bx = lx((fx + 1) * T), by = ly(y * T) + 30, hh = Math.min(head - 0.5, 6) * T * 0.9;
+          if (gothic) {
+            const aw = 64 + rnd() * 40;
+            g.fillStyle = col;
+            g.fillRect(bx - aw / 2 - 14, by - hh - 20, aw + 28, hh + 20);
+            g.fillStyle = deep;
+            g.beginPath(); archPath(g, bx, by, aw, hh - 10); g.fill();
+            g.strokeStyle = hexA(rim, 0.6); g.lineWidth = 1.6;
+            g.beginPath(); archPath(g, bx, by, aw, hh - 10); g.stroke();
+            g.fillStyle = rim; g.fillRect(bx - aw / 2 - 16, by - hh - 22, aw + 32, 3);
+            const r = rnd();
+            if (r < 0.4) statue(g, bx, by - 30, 0.75, mixHex(col, B.fog, 0.2), rgb);
+            else if (r < 0.7) {
+              const wgr = g.createLinearGradient(0, by - hh, 0, by - 30);
+              wgr.addColorStop(0, `rgba(${rgb},0.3)`); wgr.addColorStop(1, `rgba(${rgb},0.05)`);
+              g.fillStyle = wgr; g.beginPath(); archPath(g, bx, by - 30, 14, hh - 50); g.fill();
+            }
+          } else {
+            const w = 40 + rnd() * 40;
+            const gr = g.createLinearGradient(bx - w, 0, bx + w, 0);
+            gr.addColorStop(0, col); gr.addColorStop(0.35, rim); gr.addColorStop(1, deep);
+            g.fillStyle = gr;
+            stalagmite(g, bx, by, w, hh * (0.6 + rnd() * 0.4), gr);
+            if (rnd() < 0.6) {
+              // faint and slender, lifted off the floor line, so they read as background and never as thorns
+              for (let k = 0; k < 4; k++) {
+                const cx2 = bx + (k - 1.5) * 8, ch = 18 + rnd() * 26;
+                g.fillStyle = hexA(CRYSTAL[room.biome], 0.2);
+                g.beginPath(); g.moveTo(cx2 - 2.2, by - 46); g.lineTo(cx2 + (k - 1.5) * 3, by - 46 - ch); g.lineTo(cx2 + 2.2, by - 46); g.closePath(); g.fill();
+              }
+              radial(g, bx, by - 34, 46, rgb, 0.25);
+            }
+          }
+        }
+        x = x1 + 1;
+      }
+    }
+    // Ceilings: chains with cages and lanterns, or roots with glowing bulbs
+    for (let y = 1; y < room.h - 3; y++) {
+      for (let x = 2; x < room.w - 2; x++) {
+        if (!(room.rock(x, y) && air(x, y + 1) && air(x, y + 2) && air(x, y + 3) && air(x, y + 4))) continue;
+        if (hash2(x, y, room.seed + 77) > 0.09) continue;
+        const cx2 = lx(x * T + T / 2), cy2 = ly((y + 1) * T) - 20, len = 40 + rnd() * 80;
+        if (gothic) { chain(g, cx2, cy2, cy2 + len, hexA(col, 0.95)); cage(g, cx2, cy2 + len, col, rgb, rnd() < 0.55); }
+        else {
+          g.strokeStyle = col; g.lineWidth = 2.5;
+          g.beginPath(); g.moveTo(cx2, cy2);
+          for (let yy = 0; yy <= len; yy += 8) g.lineTo(cx2 + Math.sin(yy * 0.08 + x) * 5, cy2 + yy);
+          g.stroke();
+          radial(g, cx2 + Math.sin(len * 0.08 + x) * 5, cy2 + len + 4, 18, rgb, 0.7);
+        }
+      }
+    }
+    return { c, s, f: 0.9 };
+  },
+
+  // --------------------------------------------------------------- drifting fog
+  fog(color, seed) {
+    const c = makeCanvas(400, 170), g = c.getContext('2d');
+    const rnd = mulberry32(seed);
+    for (let i = 0; i < 34; i++) {
+      const a = rnd() * TAU, d = Math.sqrt(rnd());
+      const x = 200 + Math.cos(a) * d * 150, y = 85 + Math.sin(a) * d * 45, r = 30 + rnd() * 45;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, 'rgba(255,255,255,0.22)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = color; g.fillRect(0, 0, 400, 170);
+    return c;
+  },
+};
 
 </script>
 <script>
@@ -2186,6 +2553,7 @@ class Player {
     }
 
     const fx = this.cx, fy = this.y + this.h;
+    if (this.onGround && this.state !== 'dead') contactShadow(ctx, fx, fy, 10);
     ctx.save();
     ctx.translate(fx, fy);
     if (this.state === 'dead') { ctx.rotate(-this.face * Math.min(1.45, this.deadT * 4)); ctx.translate(0, Math.min(5, this.deadT * 12)); }
@@ -2226,7 +2594,9 @@ class Player {
     const air = !this.onGround && this.state !== 'dead';
     const lift = air ? clamp(this.vy / 400, -1, 1) * -3 : 0;
     const flap = Math.sin(t * 11) * (moving || air ? 1.2 : 0.3);
-    ctx.fillStyle = '#151a2c';
+    const cloak = ctx.createLinearGradient(0, -22, 0, 0);
+    cloak.addColorStop(0, '#262e4c'); cloak.addColorStop(0.55, '#171c32'); cloak.addColorStop(1, '#0f1224');
+    ctx.fillStyle = cloak;
     ctx.beginPath();
     ctx.moveTo(-5, -21);
     ctx.quadraticCurveTo(-9.5, -12, -11 + flap - (moving ? 1.5 : 0), -3 + lift);
@@ -2235,6 +2605,7 @@ class Player {
     ctx.quadraticCurveTo(8.8, -12, 5, -21);
     ctx.quadraticCurveTo(0, -23.2, -5, -21);
     ctx.fill();
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.15; ctx.lineJoin = 'round'; ctx.stroke();
     ctx.strokeStyle = '#323c62'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(5, -20.5); ctx.quadraticCurveTo(8.4, -12, 8, -1.8); ctx.stroke();
     // collar shadow
@@ -2250,6 +2621,11 @@ class Player {
     ctx.beginPath(); ctx.ellipse(0.4, -32, 5.6, 1.5, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = '#eadcbf';
     ctx.beginPath(); ctx.moveTo(4.2, -27); ctx.quadraticCurveTo(5.6, -22, 4.8, -21); ctx.quadraticCurveTo(3.8, -22, 3.6, -27); ctx.fill();
+    // ink outline and a lit edge on the wax
+    roundRect(ctx, -6, -32.5, 12, 13, 3.2);
+    ctx.strokeStyle = '#2f2318'; ctx.lineWidth = 0.95; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,251,240,0.6)';
+    roundRect(ctx, 3.3, -30.6, 1.5, 7.5, 0.75); ctx.fill();
     // Eyes
     const bl = this.blink > 0 || this.state === 'sit' || this.state === 'dead' ? 0.2 : 1;
     ctx.fillStyle = '#17121b';
@@ -2370,6 +2746,7 @@ class Wickling extends Enemy {
     const B = G.room.B;
     const x = this.cx, y = this.y + this.h, f = this.face;
     const step = Math.sin(this.t * 12);
+    if (this.onGround) contactShadow(ctx, x, y, 14);
     ctx.save(); ctx.translate(x, y); ctx.scale(f, 1);
     ctx.strokeStyle = '#0c0b10'; ctx.lineWidth = 2; ctx.lineCap = 'round';
     for (let i = 0; i < 3; i++) {
@@ -2383,6 +2760,11 @@ class Wickling extends Enemy {
     ctx.lineTo(13, -3);
     ctx.lineTo(9, -1.5); ctx.lineTo(6, -3.5); ctx.lineTo(2, -1); ctx.lineTo(-2, -3.5); ctx.lineTo(-6, -1); ctx.lineTo(-10, -3.5);
     ctx.closePath(); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = '#1d1510'; ctx.lineWidth = 1.1; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,250,236,0.55)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(-6, -13.5); ctx.bezierCurveTo(-1, -16.5, 6, -15, 10, -9); ctx.stroke();
+    }
     if (this.flash <= 0) {
       ctx.fillStyle = 'rgba(60,45,30,0.35)';
       ctx.beginPath(); ctx.moveTo(-14, -3); ctx.bezierCurveTo(-13, -10, -6, -14, 0, -14); ctx.bezierCurveTo(-7, -11, -10, -7, -10, -3.5); ctx.fill();
@@ -2522,6 +2904,7 @@ class Sentinel extends Enemy {
     else if (this.state === 'charge') { lean = 0.18; lanceA = 0.1; }
     else if (this.state === 'recover') { lean = 0.05; lanceA = 0.4; }
     const walk = this.state === 'patrol' ? Math.sin(this.t * 7) : 0;
+    if (this.onGround) contactShadow(ctx, x, y, 16);
     ctx.save(); ctx.translate(x, y); ctx.scale(f, 1);
     // legs
     ctx.strokeStyle = '#0d0b10'; ctx.lineWidth = 4; ctx.lineCap = 'round';
@@ -2535,10 +2918,20 @@ class Sentinel extends Enemy {
     ctx.fillStyle = wax;
     ctx.beginPath(); ctx.moveTo(-11, -22); ctx.quadraticCurveTo(-13, -36, -4, -38); ctx.lineTo(7, -38); ctx.quadraticCurveTo(14, -35, 12, -22);
     ctx.lineTo(10, -16); ctx.lineTo(8, -21); ctx.lineTo(4, -13); ctx.lineTo(1, -21); ctx.lineTo(-3, -15); ctx.lineTo(-6, -21); ctx.lineTo(-9, -14); ctx.closePath(); ctx.fill();
-    if (this.flash <= 0) { ctx.fillStyle = 'rgba(70,50,35,0.3)'; ctx.fillRect(-11, -36, 6, 14); }
+    if (this.flash <= 0) {
+      ctx.strokeStyle = '#1d1510'; ctx.lineWidth = 1.1; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.fillStyle = 'rgba(70,50,35,0.3)'; ctx.fillRect(-11, -36, 6, 14);
+      ctx.strokeStyle = 'rgba(255,250,236,0.5)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(1, -37); ctx.quadraticCurveTo(11, -35, 11.5, -24); ctx.stroke();
+    }
     // helm
     ctx.fillStyle = this.flash > 0 ? '#fff' : '#1b1820';
     ctx.beginPath(); ctx.moveTo(-6, -36); ctx.quadraticCurveTo(-7, -50, 2, -50); ctx.quadraticCurveTo(10, -49, 8, -36); ctx.closePath(); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = 'rgba(190,200,230,0.35)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(1, -48.5); ctx.quadraticCurveTo(7.5, -48, 7.6, -40); ctx.stroke();
+    }
     ctx.fillStyle = '#0a090c'; ctx.fillRect(0, -45, 8, 2.4);
     // lance
     ctx.save(); ctx.translate(8, -26); ctx.rotate(lanceA);
@@ -2618,6 +3011,11 @@ class Spitter extends Enemy {
     }
     ctx.fillStyle = this.flash > 0 ? '#fff' : B.wax;
     ctx.beginPath(); ctx.moveTo(-9, -2); ctx.bezierCurveTo(-12, -16, -6, -24, 0, -24); ctx.bezierCurveTo(6, -24, 12, -16, 9, -2); ctx.closePath(); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = '#1d1510'; ctx.lineWidth = 1.1; ctx.stroke();
+      ctx.fillStyle = 'rgba(80,55,40,0.3)';
+      ctx.beginPath(); ctx.moveTo(-9, -2); ctx.bezierCurveTo(-12, -16, -6, -24, 0, -24); ctx.bezierCurveTo(-5, -18, -6, -8, -4, -2); ctx.closePath(); ctx.fill();
+    }
     ctx.fillStyle = '#120c0e';
     ctx.beginPath(); ctx.ellipse(0, -19, 4.5, 3 + (this.charge > 0 ? 1.5 : 0), 0, 0, TAU); ctx.fill();
     ctx.restore();
@@ -3103,6 +3501,7 @@ class Chandler extends Enemy {
     const c = this.crouch, melt = clamp(this.meltT / 3, 0, 1);
     const wax = this.flash > 0 ? '#ffffff' : B.wax;
     const breathe = Math.sin(this.breath * 2.2) * 0.012;
+    if (this.onGround && melt < 0.5) contactShadow(ctx, x, y, 40);
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(f * (1 + melt * 0.5), (1 - c * 0.18 + breathe) * (1 - melt * 0.85));
@@ -3132,6 +3531,15 @@ class Chandler extends Enemy {
     ctx.lineTo(-6, -36); ctx.lineTo(-12, -46); ctx.lineTo(-18, -38); ctx.lineTo(-24, -46);
     ctx.closePath(); ctx.fill();
     if (this.flash <= 0) {
+      ctx.strokeStyle = '#2a1a12'; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.stroke();
+      // light catching the hump from the candles above
+      ctx.strokeStyle = 'rgba(255,240,214,0.55)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-12, -93); ctx.bezierCurveTo(8, -97, 26, -88, 30, -70); ctx.stroke();
+      // folds in the wax
+      ctx.strokeStyle = 'rgba(90,60,40,0.35)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-14, -80); ctx.quadraticCurveTo(-18, -64, -12, -50); ctx.moveTo(4, -86); ctx.quadraticCurveTo(0, -70, 6, -52); ctx.moveTo(18, -80); ctx.quadraticCurveTo(22, -66, 20, -54); ctx.stroke();
+    }
+    if (this.flash <= 0) {
       ctx.fillStyle = 'rgba(80,50,30,0.32)';
       ctx.beginPath(); ctx.moveTo(-30, -46); ctx.bezierCurveTo(-40, -70, -26, -96, -4, -96); ctx.bezierCurveTo(-18, -86, -26, -70, -20, -46); ctx.fill();
       // drips over the shoulder
@@ -3144,6 +3552,10 @@ class Chandler extends Enemy {
     // hooded head
     ctx.fillStyle = this.flash > 0 ? '#fff' : '#140a0a';
     ctx.beginPath(); ctx.moveTo(4, -76); ctx.bezierCurveTo(2, -100, 30, -102, 30, -80); ctx.quadraticCurveTo(28, -70, 18, -68); ctx.quadraticCurveTo(8, -68, 4, -76); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = 'rgba(255,180,110,0.3)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(8, -90); ctx.bezierCurveTo(14, -99, 27, -97, 29.5, -82); ctx.stroke();
+    }
     // crown candles
     for (let i = 0; i < 3; i++) {
       const cx2 = -14 + i * 9, h = 11 + i * 2;
@@ -3375,21 +3787,32 @@ function applyQuality() {
   const n = [14, 26, 40][G.quality];
   G.motes.length = 0;
   for (let i = 0; i < n; i++) G.motes.push({ x: Math.random(), y: Math.random(), z: rr(0.5, 1.3), s: rr(1, 2.6), ph: rr(0, TAU), v: rr(6, 18) });
+  G.wisps = [];
+  const nb = [0, 3, 4][G.quality], nf = [0, 2, 3][G.quality];
+  for (let i = 0; i < nb + nf; i++) {
+    const front = i >= nb;
+    G.wisps.push({ front, x: Math.random(), y: front ? rr(0.55, 0.95) : rr(0.25, 0.85), z: front ? rr(1.15, 1.35) : rr(0.35, 0.6), v: rr(5, 14) * (Math.random() < 0.5 ? -1 : 1), s: front ? rr(1.6, 2.4) : rr(1.1, 2), a: front ? rr(0.35, 0.55) : rr(0.6, 0.95), k: i % 3 });
+  }
+  G.bokeh = [];
+  for (let i = 0; i < [0, 4, 7][G.quality]; i++) G.bokeh.push({ x: Math.random(), y: Math.random(), z: rr(1.5, 2.1), r: rr(26, 64), a: rr(0.05, 0.12), ph: rr(0, TAU) });
 }
+
+function biomeRoomH(b) { let h = 0; for (const id of ROOM_ORDER) if (ROOMS[id].biome === b) h = Math.max(h, ROOMS[id].h * T); return h; }
 
 function buildRoomVisuals() {
   const B = G.room.B;
+  const t0 = performance.now();
   if (G.layerBiome !== G.room.biome) {
-    G.layers = Art.buildLayers(G.room.biome, G.view.w, G.view.h, Math.min(G.px * 0.55, 1.4));
+    G.layers = Scenery.layers(G.room.biome, G.view.w, G.view.h, Math.min(G.px * 0.55, 1.4), biomeRoomH(G.room.biome));
     G.layerBiome = G.room.biome;
     G.ray = Art.raySprite(B.ray);
+    G.fogSprites = [Scenery.fog(B.fog, 11), Scenery.fog(B.fog, 23), Scenery.fog(mixHex(B.fog, B.top, 0.25), 37)];
   }
+  G.backdrop = Scenery.backdrop(G.room, G.view.w, G.view.h, G.px);
+  G.sceneryMs = performance.now() - t0;
   const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
   sky.addColorStop(0, B.sky[0]); sky.addColorStop(0.55, B.sky[1]); sky.addColorStop(1, B.sky[2]);
   G.skyGrad = sky;
-  const fog = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.4);
-  fog.addColorStop(0, hexA(B.fog, 0)); fog.addColorStop(0.5, hexA(B.fog, 0.16)); fog.addColorStop(1, hexA(B.fog, 0));
-  G.fogGrad = fog;
   const m = ctx.createLinearGradient(0, 0, 0, T);
   m.addColorStop(0, '#ffb04a'); m.addColorStop(0.25, '#e2561d'); m.addColorStop(1, '#3a0d06');
   G.moltenGrad = m;
@@ -3845,7 +4268,7 @@ function collectLights() {
   }
   for (const f of room.flames) {
     const flick = 1 + Math.sin(t * 11 + f.ph) * 0.06 + Math.sin(t * 23 + f.ph * 2) * 0.04;
-    G.addLight(f.x, f.y - 3, 105 * flick, 0.85, 'warm', 0.34, 24);
+    G.addLight(f.x, f.y - 3, 112 * flick, 0.85, 'warm', 0.3, 38);
   }
   for (let i = 0; i < room.molten.length; i += 2) {
     const [x, y] = room.molten[i];
@@ -3856,17 +4279,41 @@ function collectLights() {
   for (const pr of G.props) if (pr.light) pr.light(G);
 }
 
-function drawTiled(L, camX, camY, offY) {
+// Parallax layers tile sideways and are anchored vertically: centred when the camera is centred on the room.
+function drawLayer(L, camX, camY) {
   const v = G.view, px = G.px;
-  const lw = L.w, lh = L.h;
-  const ox = -((camX * L.f) % lw + lw) % lw;
-  if (offY === null) {
-    // tile both ways
-    const oy = -((camY * L.f) % lh + lh) % lh;
-    for (let y = oy; y < v.h; y += lh) for (let x = ox; x < v.w; x += lw) ctx.drawImage(L.c, x * px, y * px, lw * px, lh * px);
-  } else {
-    for (let x = ox; x < v.w; x += lw) ctx.drawImage(L.c, x * px, offY * px, lw * px, lh * px);
+  const oy = v.h / 2 - L.h / 2 - (camY + v.h / 2 - (G.room.h * T) / 2) * L.f;
+  const ox = -((camX * L.f) % L.w + L.w) % L.w;
+  for (let x = ox; x < v.w; x += L.w) ctx.drawImage(L.c, x * px, oy * px, L.w * px, L.h * px);
+}
+
+// The room's back wall, at 0.9 parallax. Only the visible part of its canvas is copied.
+function drawBackdrop(camX, camY) {
+  const bd = G.backdrop, v = G.view;
+  if (!bd) return;
+  const s = bd.s, cw = bd.c.width, chh = bd.c.height;
+  let sx = camX * bd.f * s, sy = camY * bd.f * s, sw = v.w * s, sh = v.h * s;
+  let dx = camX, dy = camY, dw = v.w, dh = v.h;
+  if (sx < 0) { dx -= sx / s; dw += sx / s; sw += sx; sx = 0; }
+  if (sy < 0) { dy -= sy / s; dh += sy / s; sh += sy; sy = 0; }
+  if (sx + sw > cw) { const e = sx + sw - cw; sw -= e; dw -= e / s; }
+  if (sy + sh > chh) { const e = sy + sh - chh; sh -= e; dh -= e / s; }
+  if (sw > 1 && sh > 1) ctx.drawImage(bd.c, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
+// Slow banks of fog: some behind the playfield, a thinner few in front of it.
+function drawWisps(front, camX) {
+  const sp = G.fogSprites, v = G.view, px = G.px, t = G.time;
+  if (!sp || !G.wisps.length) return;
+  for (const w of G.wisps) {
+    if (w.front !== front) continue;
+    const sw = 400 * w.s, sh = 170 * w.s, span = v.w + sw * 1.4;
+    const x = ((w.x * span - camX * w.z + t * w.v) % span + span) % span - sw * 0.7;
+    const y = w.y * v.h - sh / 2 + Math.sin(t * 0.13 + w.x * 9) * 8;
+    ctx.globalAlpha = w.a;
+    ctx.drawImage(sp[w.k], x * px, y * px, sw * px, sh * px);
   }
+  ctx.globalAlpha = 1;
 }
 
 function render() {
@@ -3877,14 +4324,15 @@ function render() {
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = G.skyGrad; ctx.fillRect(0, 0, W, H);
 
-  // Parallax
+  // Parallax: far city, mid arcades, back fog, near pillars, then the room's own back wall
   const L = G.layers;
-  const midY = (room.h * T - v.h) / 2;
-  drawTiled(L.l1, camX, camY, (v.h - L.l1.h) / 2 - (camY - midY) * L.l1.f);
-  drawTiled(L.l2, camX, camY, null);
-  ctx.fillStyle = G.fogGrad;
-  ctx.save(); ctx.translate(0, H * 0.45 + Math.sin(t * 0.2) * 10); ctx.fillRect(0, 0, W, H * 0.4); ctx.restore();
-  drawTiled(L.l3, camX, camY, null);
+  drawLayer(L.l1, camX, camY);
+  drawLayer(L.l2, camX, camY);
+  drawWisps(false, camX);
+  drawLayer(L.l3, camX, camY);
+  ctx.setTransform(G.px, 0, 0, G.px, -Math.round(camX * G.px), -Math.round(camY * G.px));
+  drawBackdrop(camX, camY);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 
   // God rays
   if (G.quality > 0 && room.def.rays) {
@@ -3987,9 +4435,21 @@ function render() {
     ctx.fillText('↑  Rest', G.shrine.x, G.shrine.y - 130);
   }
 
-  // Foreground silhouettes
+  // Foreground silhouettes, haze and out-of-focus embers
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawWisps(true, camX);
   drawForeground(camX, camY);
+  if (G.bokeh.length) {
+    ctx.globalCompositeOperation = 'lighter';
+    for (const b of G.bokeh) {
+      const span = v.w + 200;
+      const bx = ((b.x * span - camX * b.z + t * 4) % span + span) % span - 100;
+      const by = ((b.y * (v.h + 200) - camY * b.z * 0.4 - t * 6) % (v.h + 200) + v.h + 200) % (v.h + 200) - 100;
+      ctx.globalAlpha = b.a * (0.7 + Math.sin(t * 0.9 + b.ph) * 0.3);
+      ctx.drawImage(Art.glow.warm, (bx - b.r) * px, (by - b.r) * px, b.r * 2 * px, b.r * 2 * px);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
 
   ctx.drawImage(G.vignette, 0, 0, W, H);
   if (G.hurtPulse > 0) {
@@ -4343,7 +4803,7 @@ function drawDebug(camX, camY) {
   for (const e of G.enemies) ctx.strokeRect(e.x, e.y, e.w, e.h);
   ctx.setTransform(G.pr, 0, 0, G.pr, 0, 0);
   ctx.fillStyle = '#0f0'; ctx.font = '12px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText(`${G.fps.toFixed(0)} fps  cpu ${(G.cpu || 0).toFixed(1)}ms  q${G.quality}  px ${G.px.toFixed(2)}  ${G.room.id} ${(p.x / T).toFixed(1)},${(p.y / T).toFixed(1)}`, 8, G.cssH - 18);
+  ctx.fillText(`${G.fps.toFixed(0)} fps  cpu ${(G.cpu || 0).toFixed(1)}ms  scenery ${(G.sceneryMs || 0).toFixed(0)}ms  q${G.quality}  px ${G.px.toFixed(2)}  ${G.room.id} ${(p.x / T).toFixed(1)},${(p.y / T).toFixed(1)}`, 8, G.cssH - 18);
 }
 
 // =====================================================================================

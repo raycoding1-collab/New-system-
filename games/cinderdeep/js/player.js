@@ -283,6 +283,7 @@ class Player {
     }
 
     const fx = this.cx, fy = this.y + this.h;
+    if (this.onGround && this.state !== 'dead') contactShadow(ctx, fx, fy, 10);
     ctx.save();
     ctx.translate(fx, fy);
     if (this.state === 'dead') { ctx.rotate(-this.face * Math.min(1.45, this.deadT * 4)); ctx.translate(0, Math.min(5, this.deadT * 12)); }
@@ -323,7 +324,9 @@ class Player {
     const air = !this.onGround && this.state !== 'dead';
     const lift = air ? clamp(this.vy / 400, -1, 1) * -3 : 0;
     const flap = Math.sin(t * 11) * (moving || air ? 1.2 : 0.3);
-    ctx.fillStyle = '#151a2c';
+    const cloak = ctx.createLinearGradient(0, -22, 0, 0);
+    cloak.addColorStop(0, '#262e4c'); cloak.addColorStop(0.55, '#171c32'); cloak.addColorStop(1, '#0f1224');
+    ctx.fillStyle = cloak;
     ctx.beginPath();
     ctx.moveTo(-5, -21);
     ctx.quadraticCurveTo(-9.5, -12, -11 + flap - (moving ? 1.5 : 0), -3 + lift);
@@ -332,6 +335,7 @@ class Player {
     ctx.quadraticCurveTo(8.8, -12, 5, -21);
     ctx.quadraticCurveTo(0, -23.2, -5, -21);
     ctx.fill();
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.15; ctx.lineJoin = 'round'; ctx.stroke();
     ctx.strokeStyle = '#323c62'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(5, -20.5); ctx.quadraticCurveTo(8.4, -12, 8, -1.8); ctx.stroke();
     // collar shadow
@@ -347,6 +351,11 @@ class Player {
     ctx.beginPath(); ctx.ellipse(0.4, -32, 5.6, 1.5, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = '#eadcbf';
     ctx.beginPath(); ctx.moveTo(4.2, -27); ctx.quadraticCurveTo(5.6, -22, 4.8, -21); ctx.quadraticCurveTo(3.8, -22, 3.6, -27); ctx.fill();
+    // ink outline and a lit edge on the wax
+    roundRect(ctx, -6, -32.5, 12, 13, 3.2);
+    ctx.strokeStyle = '#2f2318'; ctx.lineWidth = 0.95; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,251,240,0.6)';
+    roundRect(ctx, 3.3, -30.6, 1.5, 7.5, 0.75); ctx.fill();
     // Eyes
     const bl = this.blink > 0 || this.state === 'sit' || this.state === 'dead' ? 0.2 : 1;
     ctx.fillStyle = '#17121b';

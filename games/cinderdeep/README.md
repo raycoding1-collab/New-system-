@@ -68,7 +68,10 @@ On touch you can slide your thumb from one action button to another without lift
   between rooms.
 - **Lighting is rendered at a quarter of the screen resolution:** darkness with light cut out of it, scaled
   up as one image. Glows are pre-rendered sprites drawn additively.
-- **Parallax layers are cached per area** at reduced resolution. Particles come from a fixed pool of up to
+- **Scenery is painted once.** Each area has three parallax layers (a far skyline or cavern, mid arcades or
+  rock arches, near pillars), and each room gets a back wall built from its own ledges and ceilings (arches,
+  statues, cages, roots). All of it is drawn into canvases at reduced resolution when you enter, and a frame
+  copies only the visible part. Particles come from a fixed pool of up to
   420, so nothing is allocated during play.
 - **Pixel density is capped at 2×.** If frames stay slow, quality steps down to 1.5× and then 1×, with fewer
   particles. Force a level with `?quality=0`, `1` or `2`.
@@ -83,7 +86,8 @@ js/util.js        constants and helpers
 js/rooms.js       the seven room maps, areas and hint text
 js/audio.js       synthesised sound effects and music (Web Audio)
 js/input.js       keyboard, gamepad and multi-touch controls
-js/art.js         sprites, parallax layers and terrain chunk rendering
+js/art.js         sprites and terrain chunk rendering
+js/scenery.js     painted parallax layers, each room's back wall, fog
 js/world.js       rooms, tile collision, particles
 js/player.js      the Wick
 js/enemies.js     enemies, projectiles, pickups and props

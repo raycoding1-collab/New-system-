@@ -201,6 +201,7 @@ class Chandler extends Enemy {
     const c = this.crouch, melt = clamp(this.meltT / 3, 0, 1);
     const wax = this.flash > 0 ? '#ffffff' : B.wax;
     const breathe = Math.sin(this.breath * 2.2) * 0.012;
+    if (this.onGround && melt < 0.5) contactShadow(ctx, x, y, 40);
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(f * (1 + melt * 0.5), (1 - c * 0.18 + breathe) * (1 - melt * 0.85));
@@ -230,6 +231,15 @@ class Chandler extends Enemy {
     ctx.lineTo(-6, -36); ctx.lineTo(-12, -46); ctx.lineTo(-18, -38); ctx.lineTo(-24, -46);
     ctx.closePath(); ctx.fill();
     if (this.flash <= 0) {
+      ctx.strokeStyle = '#2a1a12'; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.stroke();
+      // light catching the hump from the candles above
+      ctx.strokeStyle = 'rgba(255,240,214,0.55)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-12, -93); ctx.bezierCurveTo(8, -97, 26, -88, 30, -70); ctx.stroke();
+      // folds in the wax
+      ctx.strokeStyle = 'rgba(90,60,40,0.35)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-14, -80); ctx.quadraticCurveTo(-18, -64, -12, -50); ctx.moveTo(4, -86); ctx.quadraticCurveTo(0, -70, 6, -52); ctx.moveTo(18, -80); ctx.quadraticCurveTo(22, -66, 20, -54); ctx.stroke();
+    }
+    if (this.flash <= 0) {
       ctx.fillStyle = 'rgba(80,50,30,0.32)';
       ctx.beginPath(); ctx.moveTo(-30, -46); ctx.bezierCurveTo(-40, -70, -26, -96, -4, -96); ctx.bezierCurveTo(-18, -86, -26, -70, -20, -46); ctx.fill();
       // drips over the shoulder
@@ -242,6 +252,10 @@ class Chandler extends Enemy {
     // hooded head
     ctx.fillStyle = this.flash > 0 ? '#fff' : '#140a0a';
     ctx.beginPath(); ctx.moveTo(4, -76); ctx.bezierCurveTo(2, -100, 30, -102, 30, -80); ctx.quadraticCurveTo(28, -70, 18, -68); ctx.quadraticCurveTo(8, -68, 4, -76); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = 'rgba(255,180,110,0.3)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(8, -90); ctx.bezierCurveTo(14, -99, 27, -97, 29.5, -82); ctx.stroke();
+    }
     // crown candles
     for (let i = 0; i < 3; i++) {
       const cx2 = -14 + i * 9, h = 11 + i * 2;

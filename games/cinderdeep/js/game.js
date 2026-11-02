@@ -72,21 +72,32 @@ function applyQuality() {
   const n = [14, 26, 40][G.quality];
   G.motes.length = 0;
   for (let i = 0; i < n; i++) G.motes.push({ x: Math.random(), y: Math.random(), z: rr(0.5, 1.3), s: rr(1, 2.6), ph: rr(0, TAU), v: rr(6, 18) });
+  G.wisps = [];
+  const nb = [0, 3, 4][G.quality], nf = [0, 2, 3][G.quality];
+  for (let i = 0; i < nb + nf; i++) {
+    const front = i >= nb;
+    G.wisps.push({ front, x: Math.random(), y: front ? rr(0.55, 0.95) : rr(0.25, 0.85), z: front ? rr(1.15, 1.35) : rr(0.35, 0.6), v: rr(5, 14) * (Math.random() < 0.5 ? -1 : 1), s: front ? rr(1.6, 2.4) : rr(1.1, 2), a: front ? rr(0.35, 0.55) : rr(0.6, 0.95), k: i % 3 });
+  }
+  G.bokeh = [];
+  for (let i = 0; i < [0, 4, 7][G.quality]; i++) G.bokeh.push({ x: Math.random(), y: Math.random(), z: rr(1.5, 2.1), r: rr(26, 64), a: rr(0.05, 0.12), ph: rr(0, TAU) });
 }
+
+function biomeRoomH(b) { let h = 0; for (const id of ROOM_ORDER) if (ROOMS[id].biome === b) h = Math.max(h, ROOMS[id].h * T); return h; }
 
 function buildRoomVisuals() {
   const B = G.room.B;
+  const t0 = performance.now();
   if (G.layerBiome !== G.room.biome) {
-    G.layers = Art.buildLayers(G.room.biome, G.view.w, G.view.h, Math.min(G.px * 0.55, 1.4));
+    G.layers = Scenery.layers(G.room.biome, G.view.w, G.view.h, Math.min(G.px * 0.55, 1.4), biomeRoomH(G.room.biome));
     G.layerBiome = G.room.biome;
     G.ray = Art.raySprite(B.ray);
+    G.fogSprites = [Scenery.fog(B.fog, 11), Scenery.fog(B.fog, 23), Scenery.fog(mixHex(B.fog, B.top, 0.25), 37)];
   }
+  G.backdrop = Scenery.backdrop(G.room, G.view.w, G.view.h, G.px);
+  G.sceneryMs = performance.now() - t0;
   const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
   sky.addColorStop(0, B.sky[0]); sky.addColorStop(0.55, B.sky[1]); sky.addColorStop(1, B.sky[2]);
   G.skyGrad = sky;
-  const fog = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.4);
-  fog.addColorStop(0, hexA(B.fog, 0)); fog.addColorStop(0.5, hexA(B.fog, 0.16)); fog.addColorStop(1, hexA(B.fog, 0));
-  G.fogGrad = fog;
   const m = ctx.createLinearGradient(0, 0, 0, T);
   m.addColorStop(0, '#ffb04a'); m.addColorStop(0.25, '#e2561d'); m.addColorStop(1, '#3a0d06');
   G.moltenGrad = m;
@@ -542,7 +553,7 @@ function collectLights() {
   }
   for (const f of room.flames) {
     const flick = 1 + Math.sin(t * 11 + f.ph) * 0.06 + Math.sin(t * 23 + f.ph * 2) * 0.04;
-    G.addLight(f.x, f.y - 3, 105 * flick, 0.85, 'warm', 0.34, 24);
+    G.addLight(f.x, f.y - 3, 112 * flick, 0.85, 'warm', 0.3, 38);
   }
   for (let i = 0; i < room.molten.length; i += 2) {
     const [x, y] = room.molten[i];
@@ -553,17 +564,41 @@ function collectLights() {
   for (const pr of G.props) if (pr.light) pr.light(G);
 }
 
-function drawTiled(L, camX, camY, offY) {
+// Parallax layers tile sideways and are anchored vertically: centred when the camera is centred on the room.
+function drawLayer(L, camX, camY) {
   const v = G.view, px = G.px;
-  const lw = L.w, lh = L.h;
-  const ox = -((camX * L.f) % lw + lw) % lw;
-  if (offY === null) {
-    // tile both ways
-    const oy = -((camY * L.f) % lh + lh) % lh;
-    for (let y = oy; y < v.h; y += lh) for (let x = ox; x < v.w; x += lw) ctx.drawImage(L.c, x * px, y * px, lw * px, lh * px);
-  } else {
-    for (let x = ox; x < v.w; x += lw) ctx.drawImage(L.c, x * px, offY * px, lw * px, lh * px);
+  const oy = v.h / 2 - L.h / 2 - (camY + v.h / 2 - (G.room.h * T) / 2) * L.f;
+  const ox = -((camX * L.f) % L.w + L.w) % L.w;
+  for (let x = ox; x < v.w; x += L.w) ctx.drawImage(L.c, x * px, oy * px, L.w * px, L.h * px);
+}
+
+// The room's back wall, at 0.9 parallax. Only the visible part of its canvas is copied.
+function drawBackdrop(camX, camY) {
+  const bd = G.backdrop, v = G.view;
+  if (!bd) return;
+  const s = bd.s, cw = bd.c.width, chh = bd.c.height;
+  let sx = camX * bd.f * s, sy = camY * bd.f * s, sw = v.w * s, sh = v.h * s;
+  let dx = camX, dy = camY, dw = v.w, dh = v.h;
+  if (sx < 0) { dx -= sx / s; dw += sx / s; sw += sx; sx = 0; }
+  if (sy < 0) { dy -= sy / s; dh += sy / s; sh += sy; sy = 0; }
+  if (sx + sw > cw) { const e = sx + sw - cw; sw -= e; dw -= e / s; }
+  if (sy + sh > chh) { const e = sy + sh - chh; sh -= e; dh -= e / s; }
+  if (sw > 1 && sh > 1) ctx.drawImage(bd.c, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
+// Slow banks of fog: some behind the playfield, a thinner few in front of it.
+function drawWisps(front, camX) {
+  const sp = G.fogSprites, v = G.view, px = G.px, t = G.time;
+  if (!sp || !G.wisps.length) return;
+  for (const w of G.wisps) {
+    if (w.front !== front) continue;
+    const sw = 400 * w.s, sh = 170 * w.s, span = v.w + sw * 1.4;
+    const x = ((w.x * span - camX * w.z + t * w.v) % span + span) % span - sw * 0.7;
+    const y = w.y * v.h - sh / 2 + Math.sin(t * 0.13 + w.x * 9) * 8;
+    ctx.globalAlpha = w.a;
+    ctx.drawImage(sp[w.k], x * px, y * px, sw * px, sh * px);
   }
+  ctx.globalAlpha = 1;
 }
 
 function render() {
@@ -574,14 +609,15 @@ function render() {
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = G.skyGrad; ctx.fillRect(0, 0, W, H);
 
-  // Parallax
+  // Parallax: far city, mid arcades, back fog, near pillars, then the room's own back wall
   const L = G.layers;
-  const midY = (room.h * T - v.h) / 2;
-  drawTiled(L.l1, camX, camY, (v.h - L.l1.h) / 2 - (camY - midY) * L.l1.f);
-  drawTiled(L.l2, camX, camY, null);
-  ctx.fillStyle = G.fogGrad;
-  ctx.save(); ctx.translate(0, H * 0.45 + Math.sin(t * 0.2) * 10); ctx.fillRect(0, 0, W, H * 0.4); ctx.restore();
-  drawTiled(L.l3, camX, camY, null);
+  drawLayer(L.l1, camX, camY);
+  drawLayer(L.l2, camX, camY);
+  drawWisps(false, camX);
+  drawLayer(L.l3, camX, camY);
+  ctx.setTransform(G.px, 0, 0, G.px, -Math.round(camX * G.px), -Math.round(camY * G.px));
+  drawBackdrop(camX, camY);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 
   // God rays
   if (G.quality > 0 && room.def.rays) {
@@ -684,9 +720,21 @@ function render() {
     ctx.fillText('↑  Rest', G.shrine.x, G.shrine.y - 130);
   }
 
-  // Foreground silhouettes
+  // Foreground silhouettes, haze and out-of-focus embers
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawWisps(true, camX);
   drawForeground(camX, camY);
+  if (G.bokeh.length) {
+    ctx.globalCompositeOperation = 'lighter';
+    for (const b of G.bokeh) {
+      const span = v.w + 200;
+      const bx = ((b.x * span - camX * b.z + t * 4) % span + span) % span - 100;
+      const by = ((b.y * (v.h + 200) - camY * b.z * 0.4 - t * 6) % (v.h + 200) + v.h + 200) % (v.h + 200) - 100;
+      ctx.globalAlpha = b.a * (0.7 + Math.sin(t * 0.9 + b.ph) * 0.3);
+      ctx.drawImage(Art.glow.warm, (bx - b.r) * px, (by - b.r) * px, b.r * 2 * px, b.r * 2 * px);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
 
   ctx.drawImage(G.vignette, 0, 0, W, H);
   if (G.hurtPulse > 0) {
@@ -1040,7 +1088,7 @@ function drawDebug(camX, camY) {
   for (const e of G.enemies) ctx.strokeRect(e.x, e.y, e.w, e.h);
   ctx.setTransform(G.pr, 0, 0, G.pr, 0, 0);
   ctx.fillStyle = '#0f0'; ctx.font = '12px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText(`${G.fps.toFixed(0)} fps  cpu ${(G.cpu || 0).toFixed(1)}ms  q${G.quality}  px ${G.px.toFixed(2)}  ${G.room.id} ${(p.x / T).toFixed(1)},${(p.y / T).toFixed(1)}`, 8, G.cssH - 18);
+  ctx.fillText(`${G.fps.toFixed(0)} fps  cpu ${(G.cpu || 0).toFixed(1)}ms  scenery ${(G.sceneryMs || 0).toFixed(0)}ms  q${G.quality}  px ${G.px.toFixed(2)}  ${G.room.id} ${(p.x / T).toFixed(1)},${(p.y / T).toFixed(1)}`, 8, G.cssH - 18);
 }
 
 // =====================================================================================

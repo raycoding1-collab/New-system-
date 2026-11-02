@@ -57,6 +57,7 @@ class Wickling extends Enemy {
     const B = G.room.B;
     const x = this.cx, y = this.y + this.h, f = this.face;
     const step = Math.sin(this.t * 12);
+    if (this.onGround) contactShadow(ctx, x, y, 14);
     ctx.save(); ctx.translate(x, y); ctx.scale(f, 1);
     ctx.strokeStyle = '#0c0b10'; ctx.lineWidth = 2; ctx.lineCap = 'round';
     for (let i = 0; i < 3; i++) {
@@ -70,6 +71,11 @@ class Wickling extends Enemy {
     ctx.lineTo(13, -3);
     ctx.lineTo(9, -1.5); ctx.lineTo(6, -3.5); ctx.lineTo(2, -1); ctx.lineTo(-2, -3.5); ctx.lineTo(-6, -1); ctx.lineTo(-10, -3.5);
     ctx.closePath(); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = '#1d1510'; ctx.lineWidth = 1.1; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,250,236,0.55)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(-6, -13.5); ctx.bezierCurveTo(-1, -16.5, 6, -15, 10, -9); ctx.stroke();
+    }
     if (this.flash <= 0) {
       ctx.fillStyle = 'rgba(60,45,30,0.35)';
       ctx.beginPath(); ctx.moveTo(-14, -3); ctx.bezierCurveTo(-13, -10, -6, -14, 0, -14); ctx.bezierCurveTo(-7, -11, -10, -7, -10, -3.5); ctx.fill();
@@ -209,6 +215,7 @@ class Sentinel extends Enemy {
     else if (this.state === 'charge') { lean = 0.18; lanceA = 0.1; }
     else if (this.state === 'recover') { lean = 0.05; lanceA = 0.4; }
     const walk = this.state === 'patrol' ? Math.sin(this.t * 7) : 0;
+    if (this.onGround) contactShadow(ctx, x, y, 16);
     ctx.save(); ctx.translate(x, y); ctx.scale(f, 1);
     // legs
     ctx.strokeStyle = '#0d0b10'; ctx.lineWidth = 4; ctx.lineCap = 'round';
@@ -222,10 +229,20 @@ class Sentinel extends Enemy {
     ctx.fillStyle = wax;
     ctx.beginPath(); ctx.moveTo(-11, -22); ctx.quadraticCurveTo(-13, -36, -4, -38); ctx.lineTo(7, -38); ctx.quadraticCurveTo(14, -35, 12, -22);
     ctx.lineTo(10, -16); ctx.lineTo(8, -21); ctx.lineTo(4, -13); ctx.lineTo(1, -21); ctx.lineTo(-3, -15); ctx.lineTo(-6, -21); ctx.lineTo(-9, -14); ctx.closePath(); ctx.fill();
-    if (this.flash <= 0) { ctx.fillStyle = 'rgba(70,50,35,0.3)'; ctx.fillRect(-11, -36, 6, 14); }
+    if (this.flash <= 0) {
+      ctx.strokeStyle = '#1d1510'; ctx.lineWidth = 1.1; ctx.lineJoin = 'round'; ctx.stroke();
+      ctx.fillStyle = 'rgba(70,50,35,0.3)'; ctx.fillRect(-11, -36, 6, 14);
+      ctx.strokeStyle = 'rgba(255,250,236,0.5)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(1, -37); ctx.quadraticCurveTo(11, -35, 11.5, -24); ctx.stroke();
+    }
     // helm
     ctx.fillStyle = this.flash > 0 ? '#fff' : '#1b1820';
     ctx.beginPath(); ctx.moveTo(-6, -36); ctx.quadraticCurveTo(-7, -50, 2, -50); ctx.quadraticCurveTo(10, -49, 8, -36); ctx.closePath(); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = 'rgba(190,200,230,0.35)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(1, -48.5); ctx.quadraticCurveTo(7.5, -48, 7.6, -40); ctx.stroke();
+    }
     ctx.fillStyle = '#0a090c'; ctx.fillRect(0, -45, 8, 2.4);
     // lance
     ctx.save(); ctx.translate(8, -26); ctx.rotate(lanceA);
@@ -305,6 +322,11 @@ class Spitter extends Enemy {
     }
     ctx.fillStyle = this.flash > 0 ? '#fff' : B.wax;
     ctx.beginPath(); ctx.moveTo(-9, -2); ctx.bezierCurveTo(-12, -16, -6, -24, 0, -24); ctx.bezierCurveTo(6, -24, 12, -16, 9, -2); ctx.closePath(); ctx.fill();
+    if (this.flash <= 0) {
+      ctx.strokeStyle = '#1d1510'; ctx.lineWidth = 1.1; ctx.stroke();
+      ctx.fillStyle = 'rgba(80,55,40,0.3)';
+      ctx.beginPath(); ctx.moveTo(-9, -2); ctx.bezierCurveTo(-12, -16, -6, -24, 0, -24); ctx.bezierCurveTo(-5, -18, -6, -8, -4, -2); ctx.closePath(); ctx.fill();
+    }
     ctx.fillStyle = '#120c0e';
     ctx.beginPath(); ctx.ellipse(0, -19, 4.5, 3 + (this.charge > 0 ? 1.5 : 0), 0, 0, TAU); ctx.fill();
     ctx.restore();

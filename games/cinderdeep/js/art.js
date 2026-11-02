@@ -54,157 +54,6 @@ const Art = {
     return c;
   },
 
-  // ---------------- Parallax layers ----------------
-  // L1: far silhouettes that tile horizontally. L2/L3: vertical structures that tile both ways.
-  buildLayers(biomeId, viewW, viewH, px) {
-    const B = BIOMES[biomeId];
-    const rnd = mulberry32(biomeId.length * 7919 + 13);
-    const out = {};
-
-    // L1
-    {
-      const w = 1400, h = Math.ceil(viewH + 180);
-      const c = makeCanvas(w * px, h * px), g = c.getContext('2d');
-      g.scale(px, px);
-      g.fillStyle = B.far;
-      const wrap = (fn) => { fn(0); fn(-w); fn(w); };
-      if (B.spire === 'gothic') {
-        for (let i = 0; i < 16; i++) {
-          const x = rnd() * w, bw = 26 + rnd() * 70, top = h * (0.12 + rnd() * 0.5);
-          wrap((o) => {
-            g.beginPath();
-            g.moveTo(o + x - bw / 2, h);
-            g.lineTo(o + x - bw / 2, top + bw * 0.8);
-            g.lineTo(o + x - bw * 0.18, top + bw * 0.45);
-            g.lineTo(o + x, top - bw * 0.9);
-            g.lineTo(o + x + bw * 0.18, top + bw * 0.45);
-            g.lineTo(o + x + bw / 2, top + bw * 0.8);
-            g.lineTo(o + x + bw / 2, h);
-            g.fill();
-            // pinnacles
-            g.fillRect(o + x - bw / 2 - 3, top + bw * 0.8, 6, -bw * 0.5);
-            g.fillRect(o + x + bw / 2 - 3, top + bw * 0.8, 6, -bw * 0.5);
-          });
-        }
-        // Arched bridges
-        for (let i = 0; i < 7; i++) {
-          const x = rnd() * w, bw = 140 + rnd() * 200, y = h * (0.45 + rnd() * 0.3);
-          wrap((o) => {
-            g.beginPath();
-            g.rect(o + x, y, bw, 16);
-            g.fill();
-            g.beginPath();
-            for (let k = 0; k < 4; k++) {
-              const ax = o + x + (k + 0.5) * bw / 4;
-              g.moveTo(ax - bw / 9, y + 16); g.quadraticCurveTo(ax, y + 50, ax + bw / 9, y + 16);
-            }
-            g.fill();
-          });
-        }
-      } else if (B.spire === 'stalactite') {
-        for (let i = 0; i < 26; i++) {
-          const x = rnd() * w, bw = 20 + rnd() * 80, len = h * (0.15 + rnd() * 0.45);
-          wrap((o) => {
-            g.beginPath(); g.moveTo(o + x - bw / 2, 0);
-            g.quadraticCurveTo(o + x - bw * 0.2, len * 0.6, o + x, len);
-            g.quadraticCurveTo(o + x + bw * 0.2, len * 0.6, o + x + bw / 2, 0); g.fill();
-          });
-        }
-        for (let i = 0; i < 18; i++) {
-          const x = rnd() * w, bw = 40 + rnd() * 120, ht = h * (0.1 + rnd() * 0.35);
-          wrap((o) => {
-            g.beginPath(); g.moveTo(o + x - bw / 2, h);
-            g.quadraticCurveTo(o + x - bw * 0.15, h - ht, o + x, h - ht);
-            g.quadraticCurveTo(o + x + bw * 0.15, h - ht, o + x + bw / 2, h); g.fill();
-          });
-        }
-      } else {
-        for (let i = 0; i < 9; i++) {
-          const x = (i + rnd() * 0.5) * (w / 9), bw = 50 + rnd() * 40;
-          wrap((o) => {
-            g.fillRect(o + x - bw / 2, 0, bw, h);
-            g.fillRect(o + x - bw / 2 - 10, h * 0.3, bw + 20, 14);
-            g.fillRect(o + x - bw / 2 - 6, h * 0.3 + 14, bw + 12, 8);
-          });
-        }
-        // Hanging chandeliers
-        for (let i = 0; i < 6; i++) {
-          const x = rnd() * w, y = h * (0.2 + rnd() * 0.25), r = 30 + rnd() * 30;
-          wrap((o) => {
-            g.fillRect(o + x - 1, 0, 2, y);
-            g.beginPath(); g.ellipse(o + x, y, r, r * 0.22, 0, 0, TAU); g.fill();
-            for (let k = -3; k <= 3; k++) g.fillRect(o + x + k * r / 3.5 - 2, y - 12, 4, 12);
-          });
-        }
-      }
-      // Distant warm windows / candles.
-      for (let i = 0; i < 40; i++) {
-        const x = rnd() * w, y = h * (0.25 + rnd() * 0.6);
-        g.fillStyle = `rgba(255,190,120,${0.15 + rnd() * 0.3})`;
-        g.fillRect(x, y, 1.5 + rnd() * 1.5, 2 + rnd() * 3);
-      }
-      const fog = g.createLinearGradient(0, h * 0.35, 0, h);
-      fog.addColorStop(0, hexA(B.fog, 0)); fog.addColorStop(1, hexA(B.fog, 0.85));
-      g.fillStyle = fog; g.fillRect(0, 0, w, h);
-      out.l1 = { c, w, h, f: 0.12 };
-    }
-
-    // L2 and L3: tile in both axes. Periods divide the tile height so seams never show.
-    const vert = (size, color, pillars, chains, f, extra) => {
-      const c = makeCanvas(size * px, size * px), g = c.getContext('2d');
-      g.scale(px, px);
-      g.fillStyle = color; g.strokeStyle = color;
-      for (let i = 0; i < pillars; i++) {
-        const x = (i + 0.2 + rnd() * 0.6) * (size / pillars), bw = extra.pw[0] + rnd() * extra.pw[1];
-        const draw = (o) => {
-          g.fillStyle = color;
-          g.fillRect(o + x - bw / 2, 0, bw, size);
-          // faint lit edge and mortar lines give the pillar some form
-          g.fillStyle = 'rgba(255,255,255,0.035)';
-          g.fillRect(o + x - bw / 2, 0, Math.max(3, bw * 0.12), size);
-          g.fillStyle = 'rgba(0,0,0,0.18)';
-          g.fillRect(o + x + bw / 2 - bw * 0.22, 0, bw * 0.22, size);
-          for (let yy = 0; yy < size; yy += 50) g.fillRect(o + x - bw / 2, yy, bw, 1.5);
-          g.fillStyle = color;
-          const bands = extra.bands;
-          for (let k = 0; k < bands; k++) {
-            const y = (k + 0.5) * (size / bands);
-            g.fillRect(o + x - bw / 2 - 6, y, bw + 12, 10);
-            g.fillRect(o + x - bw / 2 - 3, y + 10, bw + 6, 5);
-          }
-        };
-        draw(0); if (x - bw < 0) draw(size); if (x + bw > size) draw(-size);
-      }
-      g.lineWidth = 2.2;
-      for (let i = 0; i < chains; i++) {
-        const x = rnd() * size, link = 20;
-        for (let y = 0; y < size; y += link) {
-          g.beginPath();
-          if ((y / link) % 2 === 0) g.ellipse(x, y + link / 2, 3.2, link * 0.62, 0, 0, TAU);
-          else { g.moveTo(x, y); g.lineTo(x, y + link); }
-          g.stroke();
-        }
-      }
-      if (extra.roots) {
-        g.lineWidth = 3;
-        for (let i = 0; i < extra.roots; i++) {
-          const x = rnd() * size, amp = 6 + rnd() * 10, ph = rnd() * TAU;
-          g.beginPath();
-          for (let y = 0; y <= size; y += 10) {
-            const xx = x + Math.sin((y / size) * TAU * 2 + ph) * amp;
-            if (y === 0) g.moveTo(xx, y); else g.lineTo(xx, y);
-          }
-          g.stroke();
-        }
-      }
-      return { c, w: size, h: size, f };
-    };
-    const stal = B.spire === 'stalactite';
-    out.l2 = vert(1000, B.mid, stal ? 2 : 3, 4, 0.32, { pw: [36, 40], bands: 4, roots: stal ? 7 : 0 });
-    out.l3 = vert(1200, B.near, 2, 2, 0.58, { pw: [90, 70], bands: 3, roots: stal ? 4 : 0 });
-    return out;
-  },
-
   // ---------------- Terrain chunks ----------------
   renderChunk(room, cx, cy, size, s) {
     const B = BIOMES[room.biome];
@@ -257,6 +106,21 @@ const Art = {
         let px2 = x * T + hash2(x, y, seed + 5) * T, py2 = y * T + hash2(x, y, seed + 6) * T;
         g.moveTo(px2, py2);
         for (let k = 0; k < 3; k++) { px2 += (hash2(x, y, seed + 7 + k) - 0.5) * 16; py2 += 4 + hash2(x, y, seed + 9 + k) * 6; g.lineTo(px2, py2); }
+        g.stroke();
+      }
+    }
+    // 3b. Strata: faint layered bands whose curve depends only on world position, so they run on across
+    //     neighbouring tiles and chunks.
+    g.lineWidth = 1;
+    for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+      if (x < 0 || y < 0 || x >= room.w || y >= room.h || !S(x, y)) continue;
+      if (hash2(x >> 1, y, seed + 15) < 0.35) continue;
+      const X = x * T, Y = y * T;
+      for (let k = 0; k < 3; k++) {
+        const base = Y + 5 + k * 11;
+        g.strokeStyle = hexA(k === 1 ? B.fill[0] : B.fill[1], 0.8);
+        g.beginPath();
+        for (let i = 0; i <= 4; i++) { const px2 = X + i * 8; const py2 = base + Math.sin(px2 * 0.045 + y * 1.7) * 2.2; i ? g.lineTo(px2, py2) : g.moveTo(px2, py2); }
         g.stroke();
       }
     }
@@ -344,6 +208,65 @@ const Art = {
         }
       }
     }
+    // 5b. Moss and fungus on ledges, crystals on walls, long wax stalactites and roots under ceilings
+    const moss = MOSS[room.biome], crystal = CRYSTAL[room.biome], glow = GLOW[room.biome];
+    for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
+      if (x < 0 || y < 0 || x >= room.w || y >= room.h || !S(x, y)) continue;
+      const X = x * T, Y = y * T;
+      const above = room.ch(x, y - 1);
+      if (y > 0 && !S(x, y - 1) && above !== '^' && above !== '~' && above !== '-') {
+        const h = hash2(x, y, seed + 100);
+        if (h < 0.42) {
+          const n = 2 + ((h * 10) | 0) % 3;
+          for (let k = 0; k < n; k++) {
+            const mx = X + 3 + hash2(x, y + k, seed + 101) * (T - 6), mr = 3 + hash2(x + k, y, seed + 102) * 5;
+            g.fillStyle = moss; g.beginPath(); g.ellipse(mx, Y - 1, mr, mr * 0.7, 0, Math.PI, 0); g.fill();
+            g.fillStyle = hexA(B.top, 0.35); g.beginPath(); g.ellipse(mx - mr * 0.2, Y - mr * 0.45, mr * 0.45, mr * 0.18, 0, 0, TAU); g.fill();
+          }
+        }
+        if (h > 0.9) {
+          // a small mushroom; in the caverns its cap glows
+          const mx = X + 6 + hash2(x, y, seed + 103) * 20, mh = 6 + hash2(x, y, seed + 104) * 7;
+          g.strokeStyle = hexA(B.wax, 0.7); g.lineWidth = 1.6;
+          g.beginPath(); g.moveTo(mx, Y); g.quadraticCurveTo(mx + 1, Y - mh * 0.5, mx, Y - mh); g.stroke();
+          if (room.biome === 'drip') { const gr = g.createRadialGradient(mx, Y - mh, 0, mx, Y - mh, 14); gr.addColorStop(0, `rgba(${glow},0.55)`); gr.addColorStop(1, `rgba(${glow},0)`); g.fillStyle = gr; g.fillRect(mx - 14, Y - mh - 14, 28, 28); }
+          g.fillStyle = room.biome === 'drip' ? `rgb(${glow})` : hexA(B.wax, 0.85);
+          g.beginPath(); g.ellipse(mx, Y - mh, 4.5, 2.6, 0, Math.PI, 0); g.fill();
+        }
+      }
+      for (const side of [-1, 1]) {
+        if (S(x + side, y) || hash2(x * side, y, seed + 110) > 0.035) continue;
+        const ex = side < 0 ? X : X + T, cy2 = Y + 8 + hash2(x, y, seed + 111) * 16;
+        for (let k = 0; k < 3; k++) {
+          // short, upward-leaning shards in the area's tint, so they never read as thorns
+          const len = 5 + hash2(x, y + k, seed + 112) * 5, a = -0.9 + (k - 1) * 0.35;
+          const tx2 = ex + side * Math.cos(a) * len, ty2 = cy2 + Math.sin(a) * len - 3;
+          g.fillStyle = hexA(crystal, 0.4);
+          g.beginPath(); g.moveTo(ex, cy2 - 3 + k * 2); g.lineTo(tx2, ty2); g.lineTo(ex, cy2 + 2 + k * 2); g.closePath(); g.fill();
+          g.fillStyle = 'rgba(255,255,255,0.18)';
+          g.beginPath(); g.moveTo(ex, cy2 - 3 + k * 2); g.lineTo(tx2, ty2); g.lineTo(ex, cy2 - 1 + k * 2); g.closePath(); g.fill();
+        }
+      }
+      if (y + 1 < room.h && !S(x, y + 1) && room.ch(x, y + 1) !== '-') {
+        const h = hash2(x, y, seed + 120);
+        if (h < 0.1) {
+          const sx = X + 6 + hash2(x, y, seed + 121) * 20, len = 26 + hash2(x, y, seed + 122) * 40, w = 8 + hash2(x, y, seed + 123) * 8;
+          const gr = g.createLinearGradient(0, Y + T, 0, Y + T + len);
+          gr.addColorStop(0, B.fill[0]); gr.addColorStop(0.7, B.fill[1]); gr.addColorStop(1, hexA(B.wax, 0.6));
+          g.fillStyle = gr;
+          g.beginPath(); g.moveTo(sx - w / 2, Y + T - 1); g.quadraticCurveTo(sx - w * 0.15, Y + T + len * 0.6, sx, Y + T + len);
+          g.quadraticCurveTo(sx + w * 0.15, Y + T + len * 0.6, sx + w / 2, Y + T - 1); g.closePath(); g.fill();
+          g.strokeStyle = hexA(B.edge, 0.35); g.lineWidth = 1;
+          g.beginPath(); g.moveTo(sx - w / 2 + 1, Y + T); g.quadraticCurveTo(sx - w * 0.15, Y + T + len * 0.6, sx, Y + T + len); g.stroke();
+        } else if (room.biome === 'drip' && h > 0.86) {
+          const rx = X + 8 + hash2(x, y, seed + 124) * 16, len = 20 + hash2(x, y, seed + 125) * 50;
+          g.strokeStyle = B.fill[0]; g.lineWidth = 2.2;
+          g.beginPath(); g.moveTo(rx, Y + T);
+          for (let k = 0; k <= len; k += 6) g.lineTo(rx + Math.sin(k * 0.12 + x) * 3, Y + T + k);
+          g.stroke();
+        }
+      }
+    }
     // 6. Thorns, ledges and candles
     for (let y = ty0; y <= ty1; y++) for (let x = tx0; x <= tx1; x++) {
       if (x < 0 || y < 0 || x >= room.w || y >= room.h) continue;
@@ -402,6 +325,13 @@ function drawCandleBody(g, cd, B) {
   // Pooled wax at the base
   g.fillStyle = B.wax;
   g.beginPath(); g.ellipse(cd.x, cd.y - 1, cd.spread, 2.5, 0, Math.PI, 0); g.fill();
+}
+
+const INK = '#07060b';
+// A soft dark ellipse under a figure standing on the ground, so it sits on the floor instead of floating.
+function contactShadow(ctx, x, y, w) {
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath(); ctx.ellipse(x, y - 0.5, w, w * 0.2, 0, 0, TAU); ctx.fill();
 }
 
 function hexA(hex, a) {
