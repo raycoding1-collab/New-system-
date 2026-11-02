@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cinderdeep</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="Cinderdeep: a short action-platformer demo about a candle-headed wanderer in a city of wax. Built for phones.">
+<meta name="theme-color" content="#06070c">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cinderdeep">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
+<style>
+  /* One deliberate look: lamplight on soot. The game never switches to a light theme. */
+  :root {
+    --soot: #06070c;
+    --ink: #0d0f18;
+    --wax: #efe3c8;
+    --wax-dim: #b9ad95;
+    --ember: #ffb055;
+    --ember-deep: #d9622b;
+    --font-display: 'IM Fell English SC', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    --font-body: 'Cormorant Garamond', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    color-scheme: dark;
+  }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: var(--soot); color: var(--wax);
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    font-family: var(--font-body);
+  }
+  canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+  #safe {
+    position: fixed; inset: 0; pointer-events: none; visibility: hidden;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  [hidden] { display: none !important; }
+
+  .screen, .panel {
+    position: fixed; z-index: 10;
+    padding-top: max(20px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
+    box-sizing: border-box;
+  }
+  button {
+    font: inherit; color: inherit; background: none; border: 0; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .btn {
+    font-family: var(--font-display); font-size: clamp(19px, 2.6vw + 8px, 26px); letter-spacing: 0.04em;
+    color: var(--wax); padding: 8px 2px; min-height: 44px; text-align: left;
+    display: inline-flex; align-items: center; gap: 12px;
+    transition: color 160ms var(--ease-out), transform 120ms var(--ease-out);
+  }
+  .btn::before {
+    content: ''; width: 18px; height: 1.5px; background: var(--wax-dim); opacity: 0.5;
+    transition: width 200ms var(--ease-out), background 160ms var(--ease-out), opacity 160ms;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible { outline: none; color: var(--ember); }
+  .btn:focus-visible::before { width: 34px; background: var(--ember); opacity: 1; }
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover { color: var(--ember); }
+    .btn:hover::before { width: 34px; background: var(--ember); opacity: 1; }
+  }
+  .btn.small { font-size: clamp(16px, 1.6vw + 8px, 19px); color: var(--wax-dim); min-height: 40px; }
+
+  /* Title */
+  #title {
+    inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start;
+    background: linear-gradient(90deg, rgba(4,5,9,0.88) 0%, rgba(4,5,9,0.55) 38%, rgba(4,5,9,0) 70%),
+                linear-gradient(0deg, rgba(4,5,9,0.7) 0%, rgba(4,5,9,0) 45%);
+  }
+  .title-block { display: flex; flex-direction: column; gap: clamp(10px, 2vh, 20px); max-width: 34rem; animation: rise 1400ms var(--ease-out) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .eyebrow { font-family: var(--font-body); font-style: italic; font-weight: 600; font-size: clamp(15px, 1vw + 10px, 18px); color: var(--ember); letter-spacing: 0.02em; margin: 0; }
+  h1 {
+    font-family: var(--font-display); font-weight: 400; margin: 0; line-height: 0.86;
+    font-size: clamp(54px, 9vw + 12px, 128px); letter-spacing: 0.01em; color: var(--wax);
+    text-shadow: 0 0 28px rgba(255, 170, 90, 0.28), 0 2px 0 rgba(0,0,0,0.6);
+  }
+  h1 .wick { color: var(--ember); }
+  .lede { font-size: clamp(17px, 1vw + 12px, 21px); line-height: 1.35; margin: 0; color: var(--wax-dim); max-width: 26rem; text-wrap: pretty; }
+  .menu { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-top: 4px; }
+  .controls { font-size: clamp(14px, 0.5vw + 12px, 16px); color: rgba(220, 208, 184, 0.62); line-height: 1.45; margin: 4px 0 0; max-width: 30rem; }
+  .controls b { font-weight: 600; color: rgba(239, 227, 200, 0.85); }
+  @media (max-height: 460px) {
+    #title { justify-content: center; }
+    .title-block { gap: 6px; }
+    h1 { font-size: clamp(44px, 8vh + 18px, 76px); }
+    .lede { font-size: 16px; }
+    .menu { flex-direction: row; flex-wrap: wrap; gap: 4px 22px; }
+    .controls { display: none; }
+  }
+
+  /* Pause */
+  #pause { inset: 0; display: grid; place-items: center; background: rgba(4,5,9,0.72); }
+  .card { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; min-width: min(280px, 80vw); }
+  .card h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 3vw + 14px, 44px); margin: 0 0 8px; color: var(--wax); }
+  .keys { margin-top: 12px; font-size: 15px; line-height: 1.5; color: rgba(220,208,184,0.6); }
+
+  /* Shrine rest panel */
+  #rest {
+    left: 50%; bottom: 0; transform: translateX(-50%);
+    width: min(440px, 100%); display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+    background: linear-gradient(0deg, rgba(5,5,9,0.94), rgba(5,5,9,0.78)); border-top: 1px solid rgba(255,190,120,0.25);
+    padding-top: 18px; animation: panelIn 380ms var(--ease-out) both;
+  }
+  @keyframes panelIn { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  #rest h2 { font-family: var(--font-display); font-weight: 400; font-size: 26px; margin: 0; color: var(--ember); }
+  #rest p { margin: 0 0 6px; font-size: 17px; color: var(--wax-dim); }
+  .choice {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+    padding: 10px 14px; min-height: 52px; border: 1px solid rgba(239,227,200,0.18); border-radius: 3px;
+    transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out), transform 120ms var(--ease-out);
+  }
+  .choice span { font-family: var(--font-display); font-size: 20px; color: var(--wax); }
+  .choice small { font-size: 15px; color: var(--wax-dim); }
+  .choice:active:not([disabled]) { transform: scale(0.98); }
+  .choice:focus-visible { outline: none; border-color: var(--ember); }
+  .choice[disabled] { opacity: 0.45; cursor: default; }
+  @media (hover: hover) and (pointer: fine) { .choice:hover:not([disabled]) { border-color: var(--ember); background: rgba(255,170,90,0.06); } }
+  .choice.primary { border-color: rgba(255,176,85,0.55); }
+
+  /* Ability banner */
+  #banner { inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, rgba(20,12,6,0.55), rgba(3,3,6,0.9)); text-align: center; cursor: pointer; }
+  #banner .inner { display: flex; flex-direction: column; gap: 10px; align-items: center; max-width: 32rem; animation: rise 700ms var(--ease-out) both; }
+  #banner .tag { font-style: italic; font-weight: 600; color: var(--ember); font-size: 17px; margin: 0; }
+  #banner h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(44px, 6vw + 16px, 84px); margin: 0; line-height: 0.95; text-shadow: 0 0 30px rgba(255,170,90,0.35); }
+  #banner p { margin: 0; font-size: clamp(17px, 1vw + 12px, 21px); color: var(--wax-dim); text-wrap: balance; }
+  #banner .how { color: var(--wax); }
+  #banner .cont { margin-top: 14px; font-size: 15px; color: rgba(220,208,184,0.5); }
+  .rule { width: 140px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,176,85,0.7), transparent); }
+
+  /* Area name card */
+  #areacard {
+    position: fixed; z-index: 5; left: 0; right: 0; top: max(18vh, env(safe-area-inset-top, 0px)); pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; opacity: 0;
+  }
+  #areacard h2 { font-family: var(--font-display); font-weight: 400; margin: 0; font-size: clamp(30px, 3vw + 16px, 52px); letter-spacing: 0.06em; color: var(--wax); text-shadow: 0 2px 12px rgba(0,0,0,0.8); }
+  #areacard p { margin: 0; font-style: italic; font-size: clamp(16px, 1vw + 11px, 20px); color: var(--wax-dim); text-shadow: 0 1px 6px rgba(0,0,0,0.9); }
+  #areacard .rule { width: 0; transition: width 1200ms var(--ease-out); }
+  #areacard.show { animation: card 2600ms var(--ease-out) both; }
+  #areacard.boss.show { animation-duration: 3200ms; }
+  #areacard.show .rule { width: 220px; }
+  #areacard.boss h2 { color: #ffd8a8; font-size: clamp(38px, 4vw + 18px, 66px); }
+  @keyframes card { 0% { opacity: 0; transform: translateY(6px); } 18% { opacity: 1; transform: none; } 78% { opacity: 1; } 100% { opacity: 0; } }
+
+  /* Ending */
+  #ending { inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; background: rgba(4,4,7,0.94); overflow-y: auto; touch-action: pan-y; }
+  #ending .inner { display: flex; flex-direction: column; gap: 14px; max-width: 34rem; animation: rise 1200ms var(--ease-out) both; }
+  #ending h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(40px, 5vw + 16px, 76px); margin: 0; line-height: 0.95; }
+  #ending p { margin: 0; font-size: 19px; color: var(--wax-dim); }
+  .stats { display: grid; grid-template-columns: max-content max-content; gap: 4px 32px; margin: 6px 0 4px; font-size: 18px; }
+  .stats dt { color: var(--wax-dim); }
+  .stats dd { margin: 0; font-weight: 600; font-variant-numeric: lining-nums tabular-nums; color: var(--wax); }
+  .row { display: flex; flex-wrap: wrap; gap: 4px 26px; }
+
+  #mapclose { position: fixed; inset: 0; z-index: 4; }
+
+  #rotate { inset: 0; display: grid; place-items: center; background: rgba(4,4,7,0.92); text-align: center; z-index: 20; }
+  #rotate .inner { display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 20rem; }
+  #rotate svg { width: 64px; height: 64px; color: var(--ember); animation: turn 2.4s var(--ease-out) infinite; }
+  @keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+  #rotate p { margin: 0; font-size: 19px; color: var(--wax-dim); }
+
+  #noscript { position: fixed; inset: 0; display: grid; place-items: center; font-size: 20px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+    #areacard.show { animation: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Cinderdeep game view"></canvas>
+<div id="safe" aria-hidden="true"></div>
+
+<section id="title" class="screen" hidden aria-label="Title screen">
+  <div class="title-block">
+    <p class="eyebrow">A playable demo</p>
+    <h1>Cinder<span class="wick">d</span>eep</h1>
+    <p class="lede">Wake at the bottom of a city of wax, find the flicker relic, and put out the Chandler.</p>
+    <div class="menu">
+      <button id="btn-begin" class="btn" type="button">Begin</button>
+      <button id="btn-new" class="btn small" type="button" hidden>Start over</button>
+      <button id="btn-sound" class="btn small" type="button">Sound: on</button>
+    </div>
+    <p id="controls-keys" class="controls"><b>Arrows / WASD</b> move · <b>Space</b> jump · <b>X</b> strike · <b>C</b> flicker · <b>F</b> tap to hurl, hold to mend · <b>M</b> map. Gamepads work too.</p>
+    <p id="controls-touch" class="controls" hidden>Left thumb walks. Right thumb jumps, strikes and casts. Hold your phone sideways.</p>
+  </div>
+</section>
+
+<section id="pause" class="screen" hidden aria-label="Paused">
+  <div class="card">
+    <h2>Paused</h2>
+    <button id="btn-resume" class="btn" type="button">Resume</button>
+    <button id="btn-map" class="btn" type="button">Map</button>
+    <button id="btn-sound2" class="btn small" type="button">Sound: on</button>
+    <button id="btn-title" class="btn small" type="button">Save and quit to title</button>
+    <p class="keys">Progress saves when you rest at a lantern shrine.</p>
+  </div>
+</section>
+
+<section id="rest" class="panel" hidden aria-label="Lantern shrine">
+  <h2>Lantern Shrine</h2>
+  <p>Your flames are restored and your progress is saved.</p>
+  <button id="btn-temper" class="choice" type="button"><span>Temper the snuffer</span><small>Spend 80 embers</small></button>
+  <button id="btn-rise" class="choice primary" type="button"><span>Rise</span><small>Leave the shrine</small></button>
+</section>
+
+<section id="banner" class="screen" hidden aria-live="polite">
+  <div class="inner">
+    <p class="tag">Found</p>
+    <h2 id="banner-title">Flicker</h2>
+    <div class="rule"></div>
+    <p id="banner-body"></p>
+    <p id="banner-how" class="how"></p>
+    <p class="cont">Tap or press any button to continue</p>
+  </div>
+</section>
+
+<div id="areacard" aria-live="polite"><h2></h2><div class="rule"></div><p></p></div>
+
+<section id="ending" class="screen" hidden aria-label="End of the demo">
+  <div class="inner">
+    <p class="eyebrow">End of the demo</p>
+    <h2>The way below is open.</h2>
+    <p>The Chandler is out and the sealed door has given way. This is where the demo stops.</p>
+    <dl class="stats">
+      <dt>Time</dt><dd id="end-time">0:00</dd>
+      <dt>Times the flame went out</dt><dd id="end-deaths">0</dd>
+      <dt>Embers carried</dt><dd id="end-embers">0</dd>
+      <dt>Hidden wax heart</dt><dd id="end-secret">Not found</dd>
+    </dl>
+    <div class="row">
+      <button id="btn-again" class="btn" type="button">Play again</button>
+      <button id="btn-stay" class="btn small" type="button">Keep exploring</button>
+    </div>
+  </div>
+</section>
+
+<div id="mapclose" hidden></div>
+
+<section id="rotate" class="screen" hidden>
+  <div class="inner">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="20" y="8" width="24" height="48" rx="4"/><line x1="29" y1="50" x2="35" y2="50"/></svg>
+    <p>Turn your phone sideways for the best view.</p>
+    <button id="btn-rotate" class="btn small" type="button">Play upright anyway</button>
+  </div>
+</section>
+
+<noscript><div id="noscript">Cinderdeep needs JavaScript to run.</div></noscript>
+
+<script src="js/util.js"></script>
+<script src="js/rooms.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/art.js"></script>
+<script src="js/world.js"></script>
+<script src="js/player.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/boss.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

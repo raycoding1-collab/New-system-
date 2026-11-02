@@ -23,6 +23,12 @@ click-through in `site/media/check.webm`. `site/proof/stock-page.html` is the de
 version of the same brief that the gate fails 19 times. Open `site/index.html`, or serve the folder:
 `python3 -m http.server -d site`.
 
+## The demo game
+
+`games/cinderdeep/` is Cinderdeep, a short action-platformer demo built for phones, with touch, keyboard and
+gamepad controls. Its art and sound are generated in code. Open `games/cinderdeep/dist/cinderdeep.html` (one
+self-contained file) on a phone held sideways. `games/cinderdeep/README.md` covers controls and how it's built.
+
 ## What's installed
 
 | Piece | Source | Version | License |
