@@ -14,6 +14,21 @@ image or audio files, and the game has no dependencies.
 - **From the source:** serve this folder and open `index.html`:
   `python3 -m http.server -d games/cinderdeep 8000`, then visit `http://localhost:8000`.
 
+## Install it as an app
+
+Installed, Cinderdeep gets its own home-screen icon, opens full screen in landscape with no browser bars,
+and plays offline.
+
+1. **Put it on the web (once).** On GitHub open the repository's **Settings → Pages**. Under *Build and
+   deployment* pick **Deploy from a branch**, choose the branch that has the game and the **/ (root)**
+   folder, then **Save**. After a minute the game is at
+   `https://raycoding1-collab.github.io/New-system-/games/cinderdeep/`.
+2. **iPhone or iPad:** open that address in Safari, tap **Share**, then **Add to Home Screen**.
+3. **Android:** open it in Chrome and tap **Install as an app** on the title screen (or Chrome's menu,
+   then **Install app**).
+
+The app checks for updates in the background, and a new version appears the next time you open it.
+
 ## Controls
 
 | Action | Touch | Keyboard | Gamepad |
@@ -76,6 +91,9 @@ js/boss.js        the Chandler
 js/game.js        loop, camera, combat, lighting, HUD, map, saving
 tools/build.mjs   inlines everything into dist/cinderdeep.html
 tools/check-rooms.mjs  checks every room edge lines up with its neighbour
+tools/make-icons.cjs   draws the app icons into icons/
+manifest.webmanifest   app name, icons, full screen and landscape
+sw.js             offline cache for the installed app
 ```
 
 After editing, run `node games/cinderdeep/tools/check-rooms.mjs` and `node games/cinderdeep/tools/build.mjs`.

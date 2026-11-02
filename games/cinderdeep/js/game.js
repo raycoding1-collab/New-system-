@@ -1125,7 +1125,7 @@ function startGame(cont) {
   G.state = 'play';
   fade(0, 1.5);
   requestWake();
-  if (Input.touchMode) tryFullscreen();
+  if (Input.touchMode && !isStandalone()) tryFullscreen();
 }
 
 function goTitle() {
@@ -1136,7 +1136,18 @@ function goTitle() {
   refreshTitle();
 }
 
+// Installing as an app: Android and desktop Chrome offer a native prompt, iPhone uses Add to Home Screen.
+let installPrompt = null;
+const isStandalone = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isHostedApp = () => !!document.querySelector('link[rel="manifest"]') && /^https?:$/.test(location.protocol) && window.top === window;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; refreshTitle(); });
+addEventListener('appinstalled', () => { installPrompt = null; refreshTitle(); });
+
 function refreshTitle() {
+  const btn = $('btn-install');
+  btn.hidden = isStandalone() || !(installPrompt || (isIOS && isHostedApp()));
+  if (btn.hidden) $('install-ios').hidden = true;
   const saved = Store.get(SAVE_KEY);
   const has = saved && saved.spawn && !saved.done;
   $('btn-begin').textContent = has ? 'Continue' : 'Begin';
@@ -1171,6 +1182,14 @@ function wireUI() {
   $('btn-begin').addEventListener('click', () => { Sound.init(); Sound.play('ui'); startGame(true); });
   $('btn-new').addEventListener('click', () => { Sound.init(); Sound.play('ui'); Store.del(SAVE_KEY); startGame(false); });
   $('btn-sound').addEventListener('click', () => { Sound.init(); Sound.setMuted(!Sound.muted); refreshTitle(); });
+  $('btn-install').addEventListener('click', () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.finally(() => { installPrompt = null; refreshTitle(); });
+    } else {
+      $('install-ios').hidden = !$('install-ios').hidden;
+    }
+  });
   $('btn-resume').addEventListener('click', resume);
   $('btn-map').addEventListener('click', openMap);
   $('btn-sound2').addEventListener('click', () => { Sound.setMuted(!Sound.muted); $('btn-sound2').textContent = Sound.muted ? 'Sound: off' : 'Sound: on'; });

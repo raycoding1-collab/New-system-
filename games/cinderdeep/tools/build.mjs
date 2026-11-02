@@ -15,6 +15,9 @@ html = html.replace(/<script src="(js\/[\w.-]+\.js)"><\/script>/g, (_, src) => {
   return `<script>\n/* ${src} */\n${code}\n</script>`;
 });
 if (/<script src=/.test(html)) throw new Error('an external script was left un-inlined');
+// The single file has no manifest, icons or service worker beside it, so drop the app-install hooks.
+html = html.replace(/<!-- pwa[^>]*-->[\s\S]*?<!-- \/pwa -->\n?/g, '');
+if (/manifest\.webmanifest|sw\.js/.test(html)) throw new Error('install hooks were left in the single-file build');
 
 mkdirSync(join(root, 'dist'), { recursive: true });
 const out = join(root, 'dist', 'cinderdeep.html');

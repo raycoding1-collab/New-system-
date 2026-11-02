@@ -11,6 +11,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cinderdeep">
+<!-- pwa: installable app (left out of the single-file build) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!-- /pwa -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&display=swap">
@@ -94,6 +99,8 @@
   .menu { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-top: 4px; }
   .controls { font-size: clamp(14px, 0.5vw + 12px, 16px); color: rgba(220, 208, 184, 0.62); line-height: 1.45; margin: 4px 0 0; max-width: 30rem; }
   .controls b { font-weight: 600; color: rgba(239, 227, 200, 0.85); }
+  .install-note { margin: 0; max-width: 28rem; font-size: clamp(15px, 0.5vw + 13px, 17px); line-height: 1.4; color: var(--wax-dim); }
+  .install-note b { font-weight: 600; color: var(--wax); }
   @media (max-height: 460px) {
     #title { justify-content: center; }
     .title-block { gap: 6px; }
@@ -195,7 +202,9 @@
       <button id="btn-begin" class="btn" type="button">Begin</button>
       <button id="btn-new" class="btn small" type="button" hidden>Start over</button>
       <button id="btn-sound" class="btn small" type="button">Sound: on</button>
+      <button id="btn-install" class="btn small" type="button" hidden>Install as an app</button>
     </div>
+    <p id="install-ios" class="install-note" hidden>In Safari, tap the Share button, then <b>Add to Home Screen</b>. Cinderdeep then opens full screen from its own icon and plays offline.</p>
     <p id="controls-keys" class="controls"><b>Arrows / WASD</b> move · <b>Space</b> jump · <b>X</b> strike · <b>C</b> flicker · <b>F</b> tap to hurl, hold to mend · <b>M</b> map. Gamepads work too.</p>
     <p id="controls-touch" class="controls" hidden>Left thumb walks. Right thumb jumps, strikes and casts. Hold your phone sideways.</p>
   </div>
@@ -272,5 +281,13 @@
 <script src="js/enemies.js"></script>
 <script src="js/boss.js"></script>
 <script src="js/game.js"></script>
+<!-- pwa -->
+<script>
+  // Offline cache for the installed app. Only on a real web address, never inside another page's frame.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && window.top === window) {
+    addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  }
+</script>
+<!-- /pwa -->
 </body>
 </html>

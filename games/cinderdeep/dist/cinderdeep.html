@@ -94,6 +94,8 @@
   .menu { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-top: 4px; }
   .controls { font-size: clamp(14px, 0.5vw + 12px, 16px); color: rgba(220, 208, 184, 0.62); line-height: 1.45; margin: 4px 0 0; max-width: 30rem; }
   .controls b { font-weight: 600; color: rgba(239, 227, 200, 0.85); }
+  .install-note { margin: 0; max-width: 28rem; font-size: clamp(15px, 0.5vw + 13px, 17px); line-height: 1.4; color: var(--wax-dim); }
+  .install-note b { font-weight: 600; color: var(--wax); }
   @media (max-height: 460px) {
     #title { justify-content: center; }
     .title-block { gap: 6px; }
@@ -195,7 +197,9 @@
       <button id="btn-begin" class="btn" type="button">Begin</button>
       <button id="btn-new" class="btn small" type="button" hidden>Start over</button>
       <button id="btn-sound" class="btn small" type="button">Sound: on</button>
+      <button id="btn-install" class="btn small" type="button" hidden>Install as an app</button>
     </div>
+    <p id="install-ios" class="install-note" hidden>In Safari, tap the Share button, then <b>Add to Home Screen</b>. Cinderdeep then opens full screen from its own icon and plays offline.</p>
     <p id="controls-keys" class="controls"><b>Arrows / WASD</b> move · <b>Space</b> jump · <b>X</b> strike · <b>C</b> flicker · <b>F</b> tap to hurl, hold to mend · <b>M</b> map. Gamepads work too.</p>
     <p id="controls-touch" class="controls" hidden>Left thumb walks. Right thumb jumps, strikes and casts. Hold your phone sideways.</p>
   </div>
@@ -4422,7 +4426,7 @@ function startGame(cont) {
   G.state = 'play';
   fade(0, 1.5);
   requestWake();
-  if (Input.touchMode) tryFullscreen();
+  if (Input.touchMode && !isStandalone()) tryFullscreen();
 }
 
 function goTitle() {
@@ -4433,7 +4437,18 @@ function goTitle() {
   refreshTitle();
 }
 
+// Installing as an app: Android and desktop Chrome offer a native prompt, iPhone uses Add to Home Screen.
+let installPrompt = null;
+const isStandalone = () => matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isHostedApp = () => !!document.querySelector('link[rel="manifest"]') && /^https?:$/.test(location.protocol) && window.top === window;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; refreshTitle(); });
+addEventListener('appinstalled', () => { installPrompt = null; refreshTitle(); });
+
 function refreshTitle() {
+  const btn = $('btn-install');
+  btn.hidden = isStandalone() || !(installPrompt || (isIOS && isHostedApp()));
+  if (btn.hidden) $('install-ios').hidden = true;
   const saved = Store.get(SAVE_KEY);
   const has = saved && saved.spawn && !saved.done;
   $('btn-begin').textContent = has ? 'Continue' : 'Begin';
@@ -4468,6 +4483,14 @@ function wireUI() {
   $('btn-begin').addEventListener('click', () => { Sound.init(); Sound.play('ui'); startGame(true); });
   $('btn-new').addEventListener('click', () => { Sound.init(); Sound.play('ui'); Store.del(SAVE_KEY); startGame(false); });
   $('btn-sound').addEventListener('click', () => { Sound.init(); Sound.setMuted(!Sound.muted); refreshTitle(); });
+  $('btn-install').addEventListener('click', () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      installPrompt.userChoice.finally(() => { installPrompt = null; refreshTitle(); });
+    } else {
+      $('install-ios').hidden = !$('install-ios').hidden;
+    }
+  });
   $('btn-resume').addEventListener('click', resume);
   $('btn-map').addEventListener('click', openMap);
   $('btn-sound2').addEventListener('click', () => { Sound.setMuted(!Sound.muted); $('btn-sound2').textContent = Sound.muted ? 'Sound: off' : 'Sound: on'; });
