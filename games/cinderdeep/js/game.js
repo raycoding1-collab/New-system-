@@ -1278,10 +1278,13 @@ function wireUI() {
   // Keyboard navigation inside menus
   addEventListener('keydown', (e) => {
     const open = document.querySelector('.screen:not([hidden]), .panel:not([hidden])');
-    if (!open || !e.code.startsWith('Arrow')) return;
+    const enter = e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space';
+    if (!open || (!e.code.startsWith('Arrow') && !enter) || e.repeat) return;
     const btns = [...open.querySelectorAll('button:not([disabled]):not([hidden])')];
     if (!btns.length) return;
     const i = btns.indexOf(document.activeElement);
+    // Enter or Space with nothing focused presses the first button (Begin, Continue, Resume).
+    if (enter) { if (i < 0 && open.id !== 'banner') { e.preventDefault(); btns[0].click(); } return; }
     if (e.code === 'ArrowDown' || e.code === 'ArrowRight') { btns[(i + 1) % btns.length].focus(); e.preventDefault(); }
     if (e.code === 'ArrowUp' || e.code === 'ArrowLeft') { btns[(i - 1 + btns.length) % btns.length].focus(); e.preventDefault(); }
   });
