@@ -30,8 +30,20 @@ function freshSave() {
 G.saveGame = function () {
   const s = G.save;
   s.hasDash = G.hasDash; s.maxHp = G.maxHp; s.embers = G.embers; s.tempered = G.tempered; s.stats = G.stats;
-  Store.set(SAVE_KEY, s);
+  if (!Bot.active) Store.set(SAVE_KEY, s); // the autopilot never touches the player's own save
 };
+
+// Timers run on game time, so a sped-up simulation keeps events in the same order as real play.
+G.timers = []; G.clock = 0;
+function later(sec, fn) { G.timers.push({ t: sec, fn }); }
+function runTimers(dt) {
+  if (!G.timers.length) return;
+  const due = [];
+  for (const tm of G.timers) { tm.t -= dt; if (tm.t <= 0) due.push(tm); }
+  if (!due.length) return;
+  G.timers = G.timers.filter((tm) => tm.t > 0);
+  for (const tm of due) tm.fn();
+}
 
 // =====================================================================================
 // Resize and quality
@@ -321,7 +333,7 @@ G.onPlayerDeath = function (p) {
   G.slow = 0.4; G.slowT = 1.1; G.shake(0.6);
   FX.smoke(p.cx, p.y + 4, 14, 14, -50); FX.embers(p.cx, p.y + 4, 20, 100);
   G.stats.deaths++;
-  setTimeout(() => {
+  later(1.4, () => {
     fade(1, 1.6, () => {
       if (G.embers > 0) G.save.remnant = { room: G.room.id, x: p.lastSafe.x + p.w / 2, y: p.lastSafe.y + p.h, embers: G.embers };
       G.embers = 0;
@@ -330,7 +342,7 @@ G.onPlayerDeath = function (p) {
       respawnAtShrine();
       fade(0, 1.2);
     });
-  }, 1400);
+  });
 };
 
 function respawnAtShrine() {
@@ -358,7 +370,7 @@ G.collectRelic = function (r) {
   FX.embers(r.x, r.y, 40, 160);
   G.player.state = 'relic';
   G.saveGame();
-  setTimeout(() => showBanner('Flicker', 'A burst of flame carries you through the air.', Input.touchMode ? 'Tap the double arrow to flicker, on the ground or in mid-air.' : 'Press C or Shift to flicker, on the ground or in mid-air.'), 900);
+  later(0.9, () => showBanner('Flicker', 'A burst of flame carries you through the air.', Input.touchMode ? 'Tap the double arrow to flicker, on the ground or in mid-air.' : 'Press C or Shift to flicker, on the ground or in mid-air.'));
 };
 
 G.collectHeart = function (h) {
@@ -367,7 +379,7 @@ G.collectHeart = function (h) {
   FX.embers(h.x, h.y, 30, 140); G.hudPulse = 1;
   G.player.state = 'relic';
   G.saveGame();
-  setTimeout(() => showBanner('Wax Heart', 'A hidden vessel of wax. Your flame burns longer.', 'Your health has grown by one.'), 700);
+  later(0.7, () => showBanner('Wax Heart', 'A hidden vessel of wax. Your flame burns longer.', 'Your health has grown by one.'));
 };
 
 G.collectRemnant = function (r) {
@@ -382,8 +394,8 @@ G.startBoss = function () {
   entry.closed = true; Sound.play('gate'); G.shake(0.3);
   Sound.music('none');
   G.player.state = 'cutscene';
-  setTimeout(() => { b.wake(); }, 700);
-  setTimeout(() => showAreaCard('The Chandler', 'Keeper of the last wick', true), 1900);
+  later(0.7, () => { b.wake(); });
+  later(1.9, () => showAreaCard('The Chandler', 'Keeper of the last wick', true));
 };
 G.bossAwake = function () {
   if (G.player.state === 'cutscene') G.player.state = 'normal';
@@ -402,7 +414,7 @@ G.bossDefeated = function (b) {
   G.dropEmbers(b.cx, b.y + 40, 40);
   FX.embers(b.cx, b.y + 60, 50, 200);
   G.saveGame();
-  setTimeout(() => { showAreaCard('The hall falls silent', 'The way below is open'); Sound.music('shrine'); }, 1200);
+  later(1.2, () => { showAreaCard('The hall falls silent', 'The way below is open'); Sound.music('shrine'); });
 };
 
 G.endDemo = function () {
@@ -423,7 +435,7 @@ function rest() {
   G.saveGame();
   respawnEnemies();
   Sound.play('rest'); FX.embers(s.x, s.y - 80, 24, 100); G.hudPulse = 1;
-  setTimeout(() => { if (p.state === 'sit') openRest(); }, 650);
+  later(0.65, () => { if (p.state === 'sit') openRest(); });
 }
 function rise() {
   closeScreen('rest');
@@ -824,7 +836,7 @@ function drawMoltenGlow(view) {
 const hintCache = new Map();
 function drawHints(view) {
   const room = G.room, B = room.B, p = G.player;
-  if (!room.def.hints.length) return;
+  if (!room.def.hints.length || Bot.active) return; // tutorial text is for human players
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.font = `italic 600 14px ${FONT_BODY}`;
   for (const h of room.def.hints) {
@@ -1009,6 +1021,7 @@ function drawHUD() {
     ctx.fillStyle = bg; ctx.fillRect(bx, by, bw * k, 8 * s);
   }
 
+  if (Bot.active) Bot.drawHUD(ctx, s);
   if (Input.touchMode && (G.state === 'play')) {
     Input.hasDash = G.hasDash;
     Input.draw(ctx, { tallow: G.tallow });
@@ -1111,10 +1124,10 @@ function showAreaCard(title, sub, boss) {
 let bannerReady = 0;
 function showBanner(title, body, how) {
   $('banner-title').textContent = title; $('banner-body').textContent = body; $('banner-how').textContent = how;
-  openScreen('banner'); G.state = 'banner'; bannerReady = performance.now() + 700;
+  openScreen('banner'); G.state = 'banner'; bannerReady = G.clock + 0.7;
 }
 function dismissBanner() {
-  if (performance.now() < bannerReady) return;
+  if (G.clock < bannerReady) return;
   closeScreen('banner'); G.state = 'play';
   if (G.player.state === 'relic') G.player.state = 'normal';
 }
@@ -1152,7 +1165,8 @@ function showEnding() {
 }
 
 function startGame(cont) {
-  Sound.init();
+  if (!Bot.sim) Sound.init();
+  G.timers.length = 0;
   closeScreen('title');
   G.over = false;
   const saved = Store.get(SAVE_KEY);
@@ -1178,6 +1192,7 @@ function startGame(cont) {
 }
 
 function goTitle() {
+  Bot.stop();
   closeScreen('pause'); closeScreen('ending');
   G.state = 'title';
   setupTitleScene();
@@ -1251,7 +1266,8 @@ function wireUI() {
   $('btn-rise').addEventListener('click', rise);
   $('banner').addEventListener('pointerdown', (e) => { e.preventDefault(); dismissBanner(); });
   $('mapclose').addEventListener('pointerdown', (e) => { e.preventDefault(); closeMap(); });
-  $('btn-again').addEventListener('click', () => { Store.del(SAVE_KEY); closeScreen('ending'); startGame(false); });
+  $('btn-again').addEventListener('click', () => { if (!Bot.active) Store.del(SAVE_KEY); Bot.stop(); closeScreen('ending'); startGame(false); });
+  $('btn-bot').addEventListener('click', () => { Sound.init(); Sound.play('ui'); Bot.start({ speed: 1 }); startGame(false); });
   $('btn-stay').addEventListener('click', () => { closeScreen('ending'); G.state = 'play'; G.player.state = 'normal'; G.over = false; G.player.x -= 70; fade(0, 2); });
   $('btn-rotate').addEventListener('click', () => { $('rotate').hidden = true; G.rotateDismissed = true; });
   document.addEventListener('visibilitychange', () => {
@@ -1308,7 +1324,45 @@ function checkOrientation() {
 // =====================================================================================
 // Loop
 // =====================================================================================
-let last = performance.now(), acc = 0, perfAcc = 0, perfN = 0, perfSlow = 0;
+let last = performance.now(), acc = 0, perfAcc = 0, perfN = 0, perfSlow = 0, botAcc = 0;
+
+// All game logic for a slice of time, without drawing. The autopilot calls it once per simulation step.
+function tick(dt) {
+  G.clock += dt;
+  if (Bot.active) Bot.decide();
+  Input.poll();
+  menuInput();
+
+  // Fade
+  if (G.fade !== G.fadeTo || G.fadeCb) {
+    G.fade = approach(G.fade, G.fadeTo, dt * G.fadeSpeed);
+    if (G.fade === G.fadeTo && G.fadeCb) { const cb = G.fadeCb; G.fadeCb = null; cb(); }
+  }
+  if (G.flash > 0) G.flash = Math.max(0, G.flash - dt * 2.2);
+
+  if (G.state === 'title' && G.room) {
+    updateTitle(dt);
+    Input.consume();
+  } else if (G.state === 'play' && G.room) {
+    runTimers(dt);
+    if (G.slowT > 0) { G.slowT -= dt; if (G.slowT <= 0) G.slow = 1; }
+    if (G.freeze > 0) { G.freeze -= dt; }
+    else {
+      acc += dt * G.slow;
+      let steps = 0;
+      const busyFade = G.fadeCb && G.fade > 0.6;
+      while (acc >= STEP && steps < 10) {
+        if (!busyFade) update(STEP); else { G.time += STEP; Particles.update(STEP); }
+        if (steps === 0) Input.consume();
+        acc -= STEP; steps++;
+      }
+      if (steps >= 10) acc = 0;
+    }
+  } else {
+    Input.consume();
+  }
+}
+
 function frame(now) {
   requestAnimationFrame(frame);
   const c0 = performance.now();
@@ -1328,36 +1382,11 @@ function frame(now) {
     }
   }
 
-  Input.poll();
-  menuInput();
-
-  // Fade
-  if (G.fade !== G.fadeTo || G.fadeCb) {
-    G.fade = approach(G.fade, G.fadeTo, dt * G.fadeSpeed);
-    if (G.fade === G.fadeTo && G.fadeCb) { const cb = G.fadeCb; G.fadeCb = null; cb(); }
-  }
-  if (G.flash > 0) G.flash = Math.max(0, G.flash - dt * 2.2);
-
-  if (G.state === 'title' && G.room) {
-    updateTitle(dt);
-    Input.consume();
-  } else if (G.state === 'play' && G.room) {
-    if (G.slowT > 0) { G.slowT -= dt; if (G.slowT <= 0) G.slow = 1; }
-    if (G.freeze > 0) { G.freeze -= dt; }
-    else {
-      acc += dt * G.slow;
-      let steps = 0;
-      const busyFade = G.fadeCb && G.fade > 0.6;
-      while (acc >= STEP && steps < 10) {
-        if (!busyFade) update(STEP); else { G.time += STEP; Particles.update(STEP); }
-        if (steps === 0) Input.consume();
-        acc -= STEP; steps++;
-      }
-      if (steps >= 10) acc = 0;
-    }
-  } else {
-    Input.consume();
-  }
+  if (Bot.active) {
+    // The autopilot decides every simulation step, so run the logic in fixed steps.
+    botAcc = Math.min(botAcc + dt * Bot.speed, 0.25);
+    while (botAcc >= STEP) { tick(STEP); botAcc -= STEP; }
+  } else tick(dt);
   if (G.room) render();
   checkOrientation();
   G.cpu = damp(G.cpu || 0, performance.now() - c0, 4, dt);
@@ -1394,8 +1423,27 @@ function boot() {
     refreshTitle();
     $('title').hidden = false; Input.enabled = false;
   }
-  requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+  // ?bot starts the autopilot (?speed=2 plays faster). ?bot&sim runs it without drawing, as fast as
+  // the machine allows, and leaves the outcome in window.__botResult (used by tools/bot-check.cjs).
+  if (QS.has('bot')) {
+    Bot.start({ speed: parseFloat(QS.get('speed')) || 1, sim: QS.has('sim') });
+    if (!(roomQ && ROOMS[roomQ])) { $('title').hidden = true; startGame(false); }
+  }
   window.__G = G;
+  if (Bot.sim) { simLoop(); return; }
+  requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+}
+
+function simLoop() {
+  const limit = parseFloat(QS.get('limit')) || 1500;
+  const t0 = performance.now();
+  while (performance.now() - t0 < 40 && !Bot.finished && G.clock < limit) tick(STEP);
+  if (Bot.finished || G.clock >= limit) {
+    if (!Bot.finished) Bot.finish(false);
+    window.__botResult = Object.assign({ clock: +G.clock.toFixed(1), room: G.room && G.room.id, goal: Bot.state.goal }, Bot.result);
+    return;
+  }
+  setTimeout(simLoop, 0);
 }
 
 if (document.fonts && document.fonts.ready) {

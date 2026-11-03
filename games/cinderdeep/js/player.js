@@ -43,7 +43,9 @@ class Player {
 
   update(dt, G) {
     const I = Input, room = G.room;
-    const tick = (k) => { if (this[k] > 0) this[k] -= dt; };
+    // Count down to exactly zero: `dropping` is tested for truthiness, and a leftover -0.003 would leave the
+    // Wick falling through every ledge in the room.
+    const tick = (k) => { if (this[k] > 0) this[k] = Math.max(0, this[k] - dt); };
     tick('coyote'); tick('jumpBuf'); tick('floatT'); tick('dashCD'); tick('attackCD'); tick('invuln'); tick('hurtT'); tick('atkBuf'); tick('dropping');
     this.sqx = damp(this.sqx, 1, 14, dt); this.sqy = damp(this.sqy, 1, 14, dt);
     this.blinkT -= dt; if (this.blinkT < 0) { this.blink = 0.12; this.blinkT = rr(2, 5); } if (this.blink > 0) this.blink -= dt;

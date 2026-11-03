@@ -58,3 +58,5 @@ const Store = {
 
 const QS = new URLSearchParams(location.search);
 const DEBUG = QS.has('debug');
+// ?seed=N makes every random choice repeatable, so an autopilot run can be replayed exactly.
+if (QS.has('seed')) Math.random = mulberry32(parseInt(QS.get('seed'), 10) || 1);

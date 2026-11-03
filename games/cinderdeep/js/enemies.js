@@ -1,6 +1,14 @@
 'use strict';
 // Enemies, projectiles, pickups and props.
 
+// Walkers turn around at a room's edge instead of wandering out through an open doorway.
+function keepInRoom(e, G) {
+  const max = G.room.w * T - e.w - 2;
+  if (e.x < 2) { e.x = 2; e.face = 1; return true; }
+  if (e.x > max) { e.x = max; e.face = -1; return true; }
+  return false;
+}
+
 class Enemy {
   constructor(x, footY, w, h, hp) {
     this.w = w; this.h = h; this.x = x - w / 2; this.y = footY - h;
@@ -31,6 +39,12 @@ class Enemy {
     const r = moveY(G.room, this, this.vy * dt);
     this.onGround = r === 1;
     if (r) this.vy = 0;
+    // Anything knocked into molten wax burns up.
+    if (!this.dead && hazardAt(G.room, this) === '~') {
+      this.hp = 0; this.dead = true;
+      FX.embers(this.cx, this.y + this.h, 24, 140); FX.smoke(this.cx, this.y + this.h, 8, 14);
+      this.onDeath(G);
+    }
   }
   update() {}
   draw() {}
@@ -52,6 +66,7 @@ class Wickling extends Enemy {
     this.hitWall = false;
     this.gravity(dt, G);
     if (this.hitWall && this.stun <= 0) this.face *= -1;
+    keepInRoom(this, G);
   }
   draw(ctx, G) {
     const B = G.room.B;
@@ -206,6 +221,7 @@ class Sentinel extends Enemy {
     }
     this.hitWall = false;
     this.gravity(dt, G);
+    if (keepInRoom(this, G) && this.state === 'charge') { this.state = 'recover'; this.st = 0.75; this.vx = 0; }
   }
   draw(ctx, G) {
     const B = G.room.B, x = this.cx, y = this.y + this.h, f = this.face;

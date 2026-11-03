@@ -23,6 +23,7 @@ const Input = (() => {
     held, pressed, released,
     touchMode: matchMedia('(pointer: coarse)').matches,
     stick: { active: false, id: -1, ox: 0, oy: 0, x: 0, y: 0, dx: 0, dy: 0 },
+    botHeld: null,       // set by the autopilot: the buttons it is holding this step
     buttons: {},
     enabled: true,       // touch layer active (false while a menu covers the canvas)
     showInteract: false, // contextual "Rest" pill
@@ -211,9 +212,12 @@ const Input = (() => {
   function poll() {
     pollPad();
     for (const a of ACTIONS) {
-      const h = !!(keyHeld[a] || touchHeld[a] || padHeld[a]);
-      pressed[a] = !!latchP[a] || (h && !prev[a]);
-      released[a] = !!latchR[a] || (!h && prev[a]);
+      // The autopilot replaces the gameplay buttons; the player can still pause.
+      const human = !!(keyHeld[a] || touchHeld[a] || padHeld[a]);
+      const h = api.botHeld ? !!api.botHeld[a] || (a === 'pause' && human) : human;
+      // A press stays pending until a game step consumes it, so a tap during a hit-pause is not lost.
+      pressed[a] = pressed[a] || !!latchP[a] || (h && !prev[a]);
+      released[a] = released[a] || !!latchR[a] || (!h && prev[a]);
       held[a] = h;
       prev[a] = h;
       latchP[a] = latchR[a] = false;

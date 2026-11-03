@@ -92,15 +92,36 @@ js/world.js       rooms, tile collision, particles
 js/player.js      the Wick
 js/enemies.js     enemies, projectiles, pickups and props
 js/boss.js        the Chandler
+js/bot.js         the autopilot
 js/game.js        loop, camera, combat, lighting, HUD, map, saving
 tools/build.mjs   inlines everything into dist/cinderdeep.html
 tools/check-rooms.mjs  checks every room edge lines up with its neighbour
 tools/make-icons.cjs   draws the app icons into icons/
+tools/bot-check.cjs    plays the game with the autopilot over many seeds and reports hits
 manifest.webmanifest   app name, icons, full screen and landscape
 sw.js             offline cache for the installed app
 ```
 
 After editing, run `node games/cinderdeep/tools/check-rooms.mjs` and `node games/cinderdeep/tools/build.mjs`.
+
+## The autopilot
+
+Choose **Watch it play itself** on the title screen, or open `index.html?bot` (`?bot&speed=2` plays twice as
+fast). The autopilot plays with the same buttons you have and reads only what is on screen. It never moves the
+Wick directly or touches health. It does not use your save.
+
+- **Routes:** each room has a list of moves (walk to a point, jump onto a ledge, flicker across, drop through,
+  rest, fight). Every move checks that it landed where it meant to. If not, the room's list starts again,
+  skipping moves already done.
+- **Look-ahead:** in a fight it picks what it wants to do (close in, strike, throw a cinder, keep away). It then
+  simulates the Wick 0.8 s ahead for each choice of buttons, using the game's own movement and tile collision.
+  It checks each path against the predicted paths of every enemy, glob, drip, shockwave and the boss's body and
+  swipe, and presses the safe choice closest to what it wanted.
+- **Counter-strikes:** moths and globs are struck out of the air when, struck now, they would meet the blade
+  before reaching the Wick.
+
+`node games/cinderdeep/tools/bot-check.cjs 1 20` plays seeds 1 to 20 headless, without drawing, and reports
+for each run whether it finished, how many hits it took, and where. `?seed=N` makes a run repeatable.
 
 ## Debug
 

@@ -2,12 +2,12 @@
 // Offline support for the installed app. Everything the game needs is cached on first launch, so it opens
 // with no connection. Files are served from the cache and refreshed in the background, so an update shows
 // up the next time the app is opened. Bump VERSION to force a full re-download.
-const VERSION = 'cinderdeep-v3';
+const VERSION = 'cinderdeep-v4';
 const FONTS = 'cinderdeep-fonts';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './js/util.js', './js/rooms.js', './js/audio.js', './js/input.js', './js/art.js', './js/scenery.js',
-  './js/world.js', './js/player.js', './js/enemies.js', './js/boss.js', './js/game.js',
+  './js/world.js', './js/player.js', './js/enemies.js', './js/boss.js', './js/bot.js', './js/game.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
 ];
 

@@ -3,6 +3,8 @@
 // first touches the screen or presses a key.
 
 const Sound = (() => {
+  // Sound has its own random numbers so music and effects never disturb a seeded game (?seed=N).
+  const rand = mulberry32(90210);
   let ac = null, master, sfx, music, verb, noiseBuf;
   let muted = !!(Store.get('cinderdeep.muted'));
   let mode = 'none', pad = null, schedTimer = 0, nextNote = 0, beat = 0, bellAt = 0;
@@ -24,14 +26,14 @@ const Sound = (() => {
     const ir = ac.createBuffer(2, len, ac.sampleRate);
     for (let ch = 0; ch < 2; ch++) {
       const d = ir.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+      for (let i = 0; i < len; i++) d[i] = (rand() * 2 - 1) * Math.pow(1 - i / len, 3.2);
     }
     verb.buffer = ir;
     const verbOut = ac.createGain(); verbOut.gain.value = 0.42;
     verb.connect(verbOut); verbOut.connect(comp);
     noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
     const nd = noiseBuf.getChannelData(0);
-    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    for (let i = 0; i < nd.length; i++) nd[i] = rand() * 2 - 1;
     if (mode !== 'none') { const m = mode; mode = 'none'; setMusic(m); }
   }
 
@@ -67,7 +69,7 @@ const Sound = (() => {
     const g = ac.createGain(); env(g, t, vol, opt.attack || 0.003, dur);
     s.connect(f); f.connect(g); g.connect(opt.bus || sfx);
     if (opt.wet) { const w = ac.createGain(); w.gain.value = opt.wet; g.connect(w); w.connect(verb); }
-    s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.05);
+    s.start(t, rand() * 0.5); s.stop(t + dur + 0.05);
   }
 
   const lib = {
@@ -83,7 +85,7 @@ const Sound = (() => {
     hurt() { tone('sawtooth', 170, 45, 0.32, 0.26); noise(0.3, 0.5, 'lowpass', 4500, 250); },
     dash() { noise(0.2, 0.3, 'bandpass', 500, 3200, 0.8); tone('sine', 300, 900, 0.12, 0.05); },
     ember() {
-      const f = 1500 + Math.random() * 500;
+      const f = 1500 + rand() * 500;
       tone('sine', f, f * 1.02, 0.12, 0.08, { wet: 0.5 }); tone('triangle', f * 2, f * 2, 0.06, 0.03);
     },
     tallow() { tone('sine', 520, 520, 0.18, 0.05, { wet: 0.6 }); },
@@ -190,10 +192,10 @@ const Sound = (() => {
     if (t > pad.nextChord) setPadChord(pad.chord + 1);
     if (t > bellAt) {
       const sc = SCALE[mode] || SCALE.calm;
-      const f = sc[(Math.random() * sc.length) | 0] * (Math.random() < 0.3 ? 0.5 : 1);
+      const f = sc[(rand() * sc.length) | 0] * (rand() < 0.3 ? 0.5 : 1);
       tone('sine', f, f, 2.4, 0.045, { attack: 0.01, wet: 1, bus: music });
       tone('sine', f * 2.01, f * 2.01, 1.2, 0.012, { attack: 0.01, wet: 1, bus: music });
-      bellAt = t + 1.4 + Math.random() * 3.2;
+      bellAt = t + 1.4 + rand() * 3.2;
     }
   }
 
@@ -222,7 +224,7 @@ const Sound = (() => {
         const sg = ac.createGain(); sg.gain.setValueAtTime(0.28, t); sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
         s.connect(sf); sf.connect(sg); sg.connect(music);
         const w = ac.createGain(); w.gain.value = 0.3; sg.connect(w); w.connect(verb);
-        s.start(t, Math.random() * 0.5); s.stop(t + 0.2);
+        s.start(t, rand() * 0.5); s.stop(t + 0.2);
       }
       if (step === 0 && beat % 32 === 0) {
         [220, 261.63, 329.63].forEach((cf) => {
