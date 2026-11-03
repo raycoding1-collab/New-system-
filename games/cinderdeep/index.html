@@ -288,7 +288,16 @@
 <script>
   // Offline cache for the installed app. Only on a real web address, never inside another page's frame.
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && window.top === window) {
-    addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    addEventListener('load', () => {
+      const had = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {});
+      // A new version just took over: reload into it, unless a game is under way.
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!had || reloaded || document.getElementById('title').hidden) return;
+        reloaded = true; location.reload();
+      });
+    });
   }
 </script>
 <!-- /pwa -->

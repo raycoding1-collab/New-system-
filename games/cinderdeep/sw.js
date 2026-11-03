@@ -2,7 +2,9 @@
 // Offline support for the installed app. Everything the game needs is cached on first launch, so it opens
 // with no connection. Files are served from the cache and refreshed in the background, so an update shows
 // up the next time the app is opened. Bump VERSION to force a full re-download.
-const VERSION = 'cinderdeep-v4';
+// The game's own files are fetched network-first, so an online launch always gets the latest version;
+// the cache is the offline fallback.
+const VERSION = 'cinderdeep-v5';
 const FONTS = 'cinderdeep-fonts';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
@@ -12,7 +14,7 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -22,6 +24,19 @@ self.addEventListener('activate', (e) => {
       .then(() => self.clients.claim()),
   );
 });
+
+// Latest copy from the network (skipping the browser's HTTP cache), the cached one if offline or slow.
+function networkFirst(request, cacheKey) {
+  return caches.open(VERSION).then((cache) => {
+    const cached = () => cache.match(cacheKey || request, { ignoreSearch: true });
+    const net = fetch(request.url, { cache: 'no-cache', credentials: 'same-origin' }).then((res) => {
+      if (res && res.ok) cache.put(cacheKey || request, res.clone());
+      return res;
+    });
+    const slow = new Promise((ok) => setTimeout(ok, 4000)).then(cached);
+    return Promise.race([net.catch(cached), slow.then((hit) => hit || net)]).then((r) => r || net);
+  });
+}
 
 function staleWhileRevalidate(cacheName, request, cacheKey) {
   return caches.open(cacheName).then((cache) =>
@@ -49,5 +64,5 @@ self.addEventListener('fetch', (e) => {
   const scope = new URL(self.registration.scope).pathname;
   const isApp = req.mode === 'navigate' && (url.pathname === scope || url.pathname === scope + 'index.html');
   const key = isApp ? new URL('./index.html', self.registration.scope).href : undefined;
-  e.respondWith(staleWhileRevalidate(VERSION, req, key));
+  e.respondWith(networkFirst(req, key));
 });
