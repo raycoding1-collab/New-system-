@@ -80,6 +80,10 @@ export function createUI(api) {
     layer.appendChild(m);
     markers.push({ el: m, anchor, key });
   }
+  // measure label widths once (after fonts load), never inside the frame loop
+  const measure = () => { for (const mk of markers) mk.w = mk.el.offsetWidth || 130; };
+  measure();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
   const v = new THREE.Vector3();
   const ray = new THREE.Ray(), hit = new THREE.Vector3();
   // hide a marker when one of the big buildings stands between it and the camera
@@ -101,7 +105,7 @@ export function createUI(api) {
       v.copy(mk.anchor).project(camera);
       let behind = v.z > 1 || occluded(camera, mk);
       const x = (v.x * 0.5 + 0.5) * w, y = (-v.y * 0.5 + 0.5) * h;
-      const lw = mk.el.offsetWidth || 130, lh = 26;
+      const lw = mk.w || 130, lh = 26;
       if (!behind) {
         for (const r of placed) if (x < r.x + r.w && x + lw > r.x && Math.abs(y - r.y) < lh) { behind = true; break; }
         if (!behind) placed.push({ x, y, w: lw });
