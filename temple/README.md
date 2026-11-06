@@ -14,6 +14,11 @@ architecture, but it does not copy any existing temple.
 | ![Stair into the clouds at night](media/stair-night.jpg) | ![Main hall at dusk](media/main-hall-dusk.jpg) |
 | ![Raked dry garden](media/garden-day.jpg) | ![Drum bridge and koi at night](media/pond-night.jpg) |
 
+## See it online
+
+**https://raycoding1-collab.github.io/New-system-/** (GitHub Pages, served from this branch;
+the root redirects to `temple/`, and `#pagoda`-style view links carry through).
+
 ## Run it
 
 ```bash
@@ -52,6 +57,11 @@ density the pictures were rendered at, and the screen's full sharpness (up to 2�
 themselves never switch off. `?quality=` pins a setting.
 
 ### Hosting
+
+On GitHub Pages the repository is served as static files: `/index.html` forwards to
+`temple/`, and `.nojekyll` makes Pages serve every file as-is. Turn it on under **Settings →
+Pages → Build and deployment**: Source *Deploy from a branch*, then choose this branch and
+`/ (root)`.
 
 `hosted.html` is the same page with three.js loaded from jsDelivr instead of `vendor/`, for
 hosts whose content policy only allows scripts from known CDNs, such as Claude artifacts.
