@@ -6,7 +6,7 @@ import { G, FOG_GLSL } from '../lib/patch.js';
 import { cloudNoiseTexture, smokeTexture } from '../lib/textures.js';
 import { Rng } from '../lib/util.js';
 
-export function createClouds() {
+export function createClouds({ layers = 12 } = {}) {
   const noise = cloudNoiseTexture(256);
   const shared = {
     uNoise: { value: noise },
@@ -17,7 +17,7 @@ export function createClouds() {
   };
   const group = new THREE.Group();
   group.name = 'cloud-sea';
-  const N = 12;
+  const N = layers;
   const y0 = -40, y1 = -21;
   const geo = new THREE.PlaneGeometry(14000, 14000);
   geo.rotateX(-Math.PI / 2);
@@ -29,7 +29,7 @@ export function createClouds() {
       depthWrite: false,
       uniforms: {
         ...shared,
-        uLayer: { value: layer },
+        uLayer: { value: layer }, uDensity: { value: Math.sqrt(12 / N) },
         uTime: G.uTime, uSunDir: G.uSunDir, uFogColor: G.uFogColor, uFogSunColor: G.uFogSunColor,
         uFogDensity: G.uFogDensity, uFogFalloff: G.uFogFalloff, uFogBase: G.uFogBase, uHaze: G.uHaze, uFogMax: G.uFogMax,
       },
@@ -43,7 +43,7 @@ export function createClouds() {
       fragmentShader: /* glsl */`
         uniform sampler2D uNoise;
         uniform vec3 uLit, uShade;
-        uniform float uLayer, uCover, uAlpha, uTime;
+        uniform float uLayer, uCover, uAlpha, uTime, uDensity;
         varying vec3 vWPos;
         ${FOG_GLSL}
         void main() {
@@ -64,7 +64,7 @@ export function createClouds() {
           // distant haze, but clouds are lighter than the terrain fog
           float haze = 1.0 - exp(-dist * 0.00022);
           col = mix(col, mix(uFogColor, uFogSunColor, pow(max(dot(V, uSunDir), 0.0), 5.0)), haze * 0.7);
-          gl_FragColor = vec4(col, a * mix(0.55, 0.32, uLayer) * uAlpha);
+          gl_FragColor = vec4(col, a * mix(0.55, 0.32, uLayer) * uAlpha * uDensity);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,

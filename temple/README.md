@@ -30,10 +30,35 @@ step is needed.
 phones) flies the camera to nine viewpoints, and the markers open notes on each building.
 **Tour** flies through the viewpoints by itself.
 
-URL options: `?time=dawn|day|dusk|night`, `?season=spring|summer|autumn|winter`,
-`?view=overview|front|approach|gate|pagoda|hondo|garden|pond|shoro`,
-`?quality=high|medium|low` (high adds ambient occlusion and 4K shadows; if high can't hold about
-33 fps, the viewer switches to a lighter path on its own), `?clean` hides the interface.
+Viewpoints have links: `#overview`, `#front`, `#approach`, `#gate`, `#pagoda`, `#hondo`,
+`#garden`, `#pond`, `#shoro` (for example `…/index.html#pagoda`). When working locally you can
+also pass `?time=dawn|day|dusk|night`, `?season=spring|summer|autumn|winter`, `?clean` (hides
+the interface) and `?quality=medium|low`.
+
+### Quality and smoothness
+
+Every visitor gets the full scene the gallery pictures were rendered from: ambient occlusion,
+4K shadows, 4× multisampling, the whole forest and all twelve cloud layers. Smoothness comes
+from savings you can't see:
+- Shadows are only re-rendered when the light changes.
+- The pond mirror draws only what can appear in it, and when the pond is small on screen it
+  refreshes every other frame.
+- Instances are merged so the scene draws in about 130 calls.
+- Shaders compile behind the loading screen.
+- Labels never force a page layout.
+
+A dynamic-resolution loop watches the frame time and moves the pixel ratio between 1×, the
+density the pictures were rendered at, and the screen's full sharpness (up to 2×). The effects
+themselves never switch off. `?quality=` pins a setting.
+
+### Hosting
+
+`hosted.html` is the same page with three.js loaded from jsDelivr instead of `vendor/`, for
+hosts whose content policy only allows scripts from known CDNs, such as Claude artifacts.
+Publish it as the site's `index.html` together with `styles.css` and `src/`. The Export button
+works in both versions. A normal browser downloads the `.glb` directly. Inside a Claude artifact
+the host's download prompt delivers it as a `.zip`, because that sandbox doesn't allow `.glb`
+downloads.
 
 ## The 3D model file
 

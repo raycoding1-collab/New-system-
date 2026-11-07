@@ -190,7 +190,7 @@ function bambooCulm(B, fol, base, rng) {
 }
 
 // ------------------------------------------------------------------ the whole planting
-export function plantTrees(heightAt, P) {
+export function plantTrees(heightAt, P, opts = {}) {
   const rng = new Rng(2024);
   const tex = {
     maple: TX.mapleLeafTexture(), blossom: TX.blossomTexture(), needle: TX.needleTexture(), cedar: TX.cedarTexture(), bamboo: TX.bambooLeafTexture(),
@@ -241,7 +241,7 @@ export function plantTrees(heightAt, P) {
   };
   const group = B.build(palette, { name: 'trees' });
   for (const f of Object.values(fol)) group.add(f.mesh());
-  const mid = midForest(heightAt, rng, mats.cedar, palette.barkCedar);
+  const mid = midForest(heightAt, rng, mats.cedar, palette.barkCedar, opts.midCount || 950);
   group.add(mid.foliage, mid.trunks);
   fol.cedarMid = mid.fol;
   const forest = slopeForest(heightAt, rng);
@@ -251,24 +251,25 @@ export function plantTrees(heightAt, P) {
 
 // ------------------------------------------------------------------ instanced cedars on the near slopes
 // One card-built cedar, instanced ~900 times with per-tree scale, lean and tint.
-function midForest(heightAt, rng, material, barkMaterial) {
+function midForest(heightAt, rng, material, barkMaterial, count) {
   const f = new Foliage('cedarMid', material);
   const H = 24;
   const base = new THREE.Vector3();
-  for (let h = 0.2; h < 1; h += 0.06) {
+  // ~230 cards per tree: dense enough from the terrace, light enough to instance by the hundred
+  for (let h = 0.2; h < 1; h += 0.075) {
     const c = new THREE.Vector3(0, h * H, 0);
     const R = (1 - h) * 3.0 + 0.6;
     const n = h > 0.9 ? 1 : 3;
     for (let k = 0; k < n; k++) {
       const a = (k / n) * TAU + h * 7;
       const p = c.clone().add(new THREE.Vector3(Math.cos(a) * R * 0.6, 0, Math.sin(a) * R * 0.6));
-      f.cluster(p, R * 0.6 + 0.5, 0.75, R * 0.6 + 0.5, 9, 1.35, rng, h, 0.2);
+      f.cluster(p, R * 0.6 + 0.5, 0.8, R * 0.6 + 0.5, 7, 1.5, rng, h, 0.2);
     }
   }
   const tmp = f.mesh();
   const spots = [];
   let tries = 0;
-  while (spots.length < 950 && tries < 40000) {
+  while (spots.length < count && tries < 40000) {
     tries++;
     const a = rng.f() * TAU, r = 60 + Math.pow(rng.f(), 1.2) * 120;
     const x = Math.cos(a) * r, z = Math.sin(a) * r * 1.05 - 6;

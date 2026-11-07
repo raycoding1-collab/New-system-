@@ -82,7 +82,7 @@ export function buildPond(B, P, renderer) {
   const orig = water.onBeforeRender;
   let last = -1;
   water.onBeforeRender = function (r, s, c, ...rest) {
-    if (water.userData.frame === last) return;
+    if (water.userData.frame === last || water.userData.skip) return;
     last = water.userData.frame;
     orig.call(this, r, s, c, ...rest);
   };
