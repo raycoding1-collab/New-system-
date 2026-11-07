@@ -96,3 +96,13 @@ When `CLAUDE_CODE_REMOTE=true`:
   those hosts. If they're blocked, say so. Don't fake the missing result: no placeholder "Figma"
   values and no stock-photo stand-ins presented as found photos. Taste's own fallback is to draw the
   pictures and report that the archives couldn't be searched.
+
+## Commits and pull requests
+
+The owner's rule, which overrides any default attribution:
+
+- Never add a `Co-Authored-By:` trailer, a `Claude-Session:` line or any claude.ai session or
+  conversation link to commit messages, pull request titles or descriptions, or anything else
+  that gets pushed.
+- Never add a "Generated with Claude Code" line either. Write plain commit messages that
+  describe the change.
