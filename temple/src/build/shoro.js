@@ -4,6 +4,7 @@
 // from ropes beside it and can be swung (the viewer animates it and synthesises the sound).
 import * as THREE from 'three';
 import { mat, cylGeo, latheGeo, polyTubeGeo, TAU } from '../lib/util.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Roof } from '../arch/roof.js';
 import { storey } from '../arch/body.js';
 import { kidan, stairs } from '../arch/parts.js';
@@ -53,7 +54,9 @@ export function buildShoro(B, cx, cz, P) {
   bronze.side = THREE.DoubleSide;
   bronze.onBeforeCompile = P.bronze.onBeforeCompile;
   bronze.customProgramCacheKey = P.bronze.customProgramCacheKey;
-  const add = (geo, m, material = bronze) => { const mesh = new THREE.Mesh(geo, material); if (m) mesh.applyMatrix4(m); mesh.castShadow = true; mesh.receiveShadow = true; bell.add(mesh); return mesh; };
+  // every bell part is collected and merged into one mesh (one draw call instead of ~90)
+  const bellParts = [];
+  const add = (geo, m) => { if (m) geo.applyMatrix4(m); bellParts.push(geo); };
   add(latheGeo([
     [0.001, 2.35], [0.4, 2.33], [0.56, 2.26], [0.63, 2.1], [0.65, 1.8], [0.66, 1.3], [0.68, 0.8], [0.72, 0.4], [0.77, 0.14], [0.8, 0.03], [0.79, 0],
     [0.7, 0], [0.64, 0.35], [0.6, 1.0], [0.57, 1.8], [0.45, 2.15], [0.001, 2.2],
@@ -87,6 +90,14 @@ export function buildShoro(B, cx, cz, P) {
   for (const sx of [-1, 1]) add(new THREE.SphereGeometry(0.11, 10, 8), mat(sx * 0.2, 2.38, 0, 0, 0, 0, 1.2, 0.8, 1));
   add(new THREE.SphereGeometry(0.09, 10, 8), mat(0, 2.62, 0));
 
+  {
+    const merged = mergeGeometries(bellParts, false);
+    const mesh = new THREE.Mesh(merged, bronze);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.name = 'bell';
+    bell.add(mesh);
+  }
+
   // the striker (shumoku): pivot at the beam, log hanging on two ropes
   const pivot = new THREE.Group();
   pivot.position.set(cx + 2.0, beamY - 0.55, cz);
@@ -101,17 +112,17 @@ export function buildShoro(B, cx, cz, P) {
   const cap = new THREE.Mesh(cylGeo(0.175, 0.175, 0.08, 16), P.iron);
   cap.rotation.z = Math.PI / 2; cap.position.set(-1.2, strikeY, 0);
   pivot.add(cap);
+  // ropes, wraps and the pull rope share a material: one merged mesh
+  const ropeParts = [];
   for (const x of [-0.7, 0.7]) {
-    const rope = new THREE.Mesh(polyTubeGeo([new THREE.Vector3(x, 0, 0), new THREE.Vector3(x, strikeY + 0.17, 0)], 0.025, 5), P.rope);
-    pivot.add(rope);
-    const wrap = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.03, 6, 16), P.rope);
-    wrap.position.set(x, strikeY, 0); wrap.rotation.y = Math.PI / 2;
-    pivot.add(wrap);
+    ropeParts.push(polyTubeGeo([new THREE.Vector3(x, 0, 0), new THREE.Vector3(x, strikeY + 0.17, 0)], 0.025, 5));
+    ropeParts.push(new THREE.TorusGeometry(0.19, 0.03, 6, 16).applyMatrix4(mat(x, strikeY, 0, Math.PI / 2)));
   }
   // pull rope with a tassel
   const pull = [];
   for (let i = 0; i <= 10; i++) pull.push(new THREE.Vector3(0.9 + i * 0.02, strikeY - i * 0.16, Math.sin(i) * 0.02));
-  pivot.add(new THREE.Mesh(polyTubeGeo(pull, 0.025, 5), P.rope));
+  ropeParts.push(polyTubeGeo(pull, 0.025, 5));
+  pivot.add(new THREE.Mesh(mergeGeometries(ropeParts, false), P.rope));
   const tassel = new THREE.Mesh(latheGeo([[0.001, 0], [0.06, -0.05], [0.09, -0.3], [0.001, -0.32]], 8), P.ropeRed);
   tassel.position.copy(pull[pull.length - 1]);
   pivot.add(tassel);

@@ -78,6 +78,18 @@ class Foliage {
   }
 }
 
+// Canopies of one species, split into 60 m cells: each cell is its own mesh with tight
+// bounds, so trees outside the view are skipped by frustum culling.
+class FoliageSet {
+  constructor(name, material, cell = 60) { this.name = name; this.material = material; this.cell = cell; this.cells = new Map(); }
+  at(x, z) {
+    const key = `${Math.floor(x / this.cell)}:${Math.floor(z / this.cell)}`;
+    if (!this.cells.has(key)) this.cells.set(key, new Foliage(this.name, this.material));
+    return this.cells.get(key);
+  }
+  list() { return [...this.cells.values()]; }
+}
+
 // ------------------------------------------------------------------ branches
 function limb(B, key, a, b, r0, r1, seg = 7) {
   const dir = b.clone().sub(a);
@@ -206,8 +218,8 @@ export function plantTrees(heightAt, P, opts = {}) {
     bamboo: leafMat('leaf-bamboo', tex.bamboo, 0.09),
   };
   const fol = {
-    maple: new Foliage('maple', mats.maple), cherry: new Foliage('cherry', mats.cherry), pine: new Foliage('pine', mats.pine),
-    cedar: new Foliage('cedar', mats.cedar), bamboo: new Foliage('bamboo', mats.bamboo),
+    maple: new FoliageSet('maple', mats.maple), cherry: new FoliageSet('cherry', mats.cherry), pine: new FoliageSet('pine', mats.pine),
+    cedar: new FoliageSet('cedar', mats.cedar), bamboo: new FoliageSet('bamboo', mats.bamboo),
   };
   const B = new Builder();
   const at = (x, z) => new THREE.Vector3(x, heightAt(x, z), z);
@@ -215,23 +227,23 @@ export function plantTrees(heightAt, P, opts = {}) {
   const mapleSp = { trunk: 1.8, radius: 0.2, depth: 4, firstKids: 3, spread: 0.85, lenRatio: 0.78, radRatio: 0.62, taper: 0.7, upBias: 0.25, droop: -0.3, cr: 1.3, cards: 30, card: 0.55, height: 7 };
   const cherrySp = { trunk: 1.5, radius: 0.26, depth: 4, firstKids: 4, spread: 0.95, lenRatio: 0.78, radRatio: 0.6, taper: 0.7, upBias: 0.1, droop: -0.35, cr: 1.3, cards: 50, card: 0.7, height: 6 };
   const maples = [[20.5, 4], [45, -1], [46, -19], [23, -25], [40, -27], [15, 31], [36, 31.5], [-16, 38], [14, 50], [-44, 28], [-18, -38], [18, -39], [6, 53], [48, 14]];
-  for (const [x, z] of maples) deciduous(B, fol.maple, 'barkMaple', at(x, z), rng, { ...mapleSp, trunk: mapleSp.trunk * rng.range(0.85, 1.2) });
+  for (const [x, z] of maples) deciduous(B, fol.maple.at(x, z), 'barkMaple', at(x, z), rng, { ...mapleSp, trunk: mapleSp.trunk * rng.range(0.85, 1.2) });
   const cherries = [[-40, 1], [-20, 20], [-41, 18], [-12, 17], [-12, 49], [20, 46], [-36, -14]];
-  for (const [x, z] of cherries) deciduous(B, fol.cherry, 'barkCherry', at(x, z), rng, cherrySp);
+  for (const [x, z] of cherries) deciduous(B, fol.cherry.at(x, z), 'barkCherry', at(x, z), rng, cherrySp);
   const pines = [[-18, -4, 1], [18.2, -3, 0.9], [40.5, -17.5, 0.55], [-23, -39, 0.9], [-45, -25, 0.85], [-9, 51, 0.8], [9, 51, 0.8], [-17, -27, 0.75]];
-  for (const [x, z, s] of pines) pine(B, fol.pine, at(x, z), rng, s);
+  for (const [x, z, s] of pines) pine(B, fol.pine.at(x, z), at(x, z), rng, s);
   // hero cedars behind the hall and along the flanks
   const cedars = [];
   for (let x = -56; x <= 56; x += rng.range(5.5, 8.5)) cedars.push([x + rng.range(-1.5, 1.5), -55 - rng.range(0, 9)]);
   for (let x = -60; x <= 60; x += rng.range(7, 11)) cedars.push([x, -68 - rng.range(0, 8)]);
   for (let z = -36; z <= 12; z += rng.range(8, 12)) cedars.push([-58 - rng.range(0, 4), z]);
   for (let z = -40; z <= 40; z += rng.range(9, 13)) cedars.push([59 + rng.range(0, 4), z]);
-  for (const [x, z] of cedars.filter(([x, z]) => !inClearing(x, z))) cedar(B, fol.cedar, at(x, z).add(new THREE.Vector3(0, -0.3, 0)), rng, rng.range(22, 32));
+  for (const [x, z] of cedars.filter(([x, z]) => !inClearing(x, z))) cedar(B, fol.cedar.at(x, z), at(x, z).add(new THREE.Vector3(0, -0.3, 0)), rng, rng.range(22, 32));
   // bamboo grove on the west flank
   for (let i = 0; i < 80; i++) {
     const x = rng.range(-53, -45), z = rng.range(-14, 24);
     if (Math.hypot(x + 41, z - 18) < 4) continue;
-    bambooCulm(B, fol.bamboo, at(x, z), rng);
+    bambooCulm(B, fol.bamboo.at(x, z), at(x, z), rng);
   }
 
   const barkMat = (name, color, rough = 0.9) => patchMaterial(new THREE.MeshStandardMaterial({ name, color, map: P.textures.wood.map, normalMap: P.textures.wood.normal, roughness: rough }), {});
@@ -240,7 +252,7 @@ export function plantTrees(heightAt, P, opts = {}) {
     barkCedar: barkMat('bark-cedar', '#4d3529'), bamboo: P.bamboo, bambooDry: P.bambooDry,
   };
   const group = B.build(palette, { name: 'trees' });
-  for (const f of Object.values(fol)) group.add(f.mesh());
+  for (const set of Object.values(fol)) for (const f of set.list()) group.add(f.mesh());
   const mid = midForest(heightAt, rng, mats.cedar, palette.barkCedar, opts.midCount || 950);
   group.add(mid.foliage, mid.trunks);
   fol.cedarMid = mid.fol;
@@ -280,26 +292,42 @@ function midForest(heightAt, rng, material, barkMaterial, count) {
     if (y < -36) continue;
     spots.push([x, y, z]);
   }
-  const foliage = new THREE.InstancedMesh(tmp.geometry, material, spots.length);
   const trunkGeo = cylGeo(0.06, 0.5, H * 0.95, 7, true);
   trunkGeo.translate(0, H * 0.475, 0);
-  const trunks = new THREE.InstancedMesh(trunkGeo, barkMaterial, spots.length);
+  // compute every instance first (same random sequence as ever), then deal them into
+  // sectors around the mountain so the ones behind the camera are culled
+  const SECT = 8;
+  const buckets = Array.from({ length: SECT }, () => ({ m: [], c: [] }));
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
-  spots.forEach(([x, y, z], i) => {
+  spots.forEach(([x, y, z]) => {
     const s = rng.range(0.7, 1.25);
     q.setFromEuler(new THREE.Euler(rng.range(-0.04, 0.04), rng.f() * TAU, rng.range(-0.04, 0.04)));
     m.compose(new THREE.Vector3(x, y - 0.4, z), q, new THREE.Vector3(s * rng.range(0.85, 1.1), s, s * rng.range(0.85, 1.1)));
-    foliage.setMatrixAt(i, m); trunks.setMatrixAt(i, m);
     c.setScalar(rng.range(0.78, 1.12));
-    foliage.setColorAt(i, c);
+    const k = Math.min(SECT - 1, Math.floor(((Math.atan2(z, x) + Math.PI) / TAU) * SECT));
+    buckets[k].m.push(m.clone()); buckets[k].c.push(c.clone());
   });
-  foliage.castShadow = trunks.castShadow = true;
-  foliage.receiveShadow = trunks.receiveShadow = true;
-  foliage.userData.noAO = true;
+  const foliage = new THREE.Group(), trunks = new THREE.Group();
   foliage.name = 'cedars-mid'; trunks.name = 'cedar-trunks-mid';
-  foliage.foliageMeta = tmp.foliageMeta;
+  foliage.userData.noAO = true;
   foliage.userData.noExport = true; trunks.userData.noExport = true;
-  f.meshObj = foliage;
+  for (const b of buckets) {
+    if (!b.m.length) continue;
+    const fm = new THREE.InstancedMesh(tmp.geometry, material, b.m.length);
+    const tm = new THREE.InstancedMesh(trunkGeo, barkMaterial, b.m.length);
+    b.m.forEach((mm, i) => { fm.setMatrixAt(i, mm); tm.setMatrixAt(i, mm); fm.setColorAt(i, b.c[i]); });
+    fm.castShadow = tm.castShadow = true;
+    fm.receiveShadow = tm.receiveShadow = true;
+    fm.name = 'cedars-mid'; tm.name = 'cedar-trunks-mid';
+    fm.userData.noAO = true;
+    fm.userData.noExport = true; tm.userData.noExport = true;
+    fm.computeBoundingSphere(); tm.computeBoundingSphere();
+    foliage.add(fm); trunks.add(tm);
+  }
+  // all sectors share one geometry, so recolouring it recolours every tree
+  const first = foliage.children[0];
+  first.foliageMeta = tmp.foliageMeta;
+  f.meshObj = first;
   void base;
   return { foliage, trunks, fol: f };
 }
@@ -358,22 +386,35 @@ function slopeForest(heightAt, rng) {
     if (Math.hypot(dx, dz) / 2 > 2.2) continue;
     spots.push([x, y, z]);
   }
-  const mesh = new THREE.InstancedMesh(merged, material, spots.length);
+  const SECT = 12;
+  const buckets = Array.from({ length: SECT }, () => ({ m: [], c: [], ids: [] }));
   const m = new THREE.Matrix4(), c = new THREE.Color();
   const greens = [new THREE.Color('#1f3019'), new THREE.Color('#2a3d1f'), new THREE.Color('#33461f'), new THREE.Color('#263a26')];
   spots.forEach(([x, y, z], i) => {
     const s = rng.range(4.2, 6.8) * (1 + smoothstep(120, 400, Math.hypot(x, z)) * 0.5);
     m.compose(new THREE.Vector3(x, y - 0.5, z), new THREE.Quaternion().setFromAxisAngle(UP, rng.f() * TAU), new THREE.Vector3(s * rng.range(0.8, 1.1), s * rng.range(0.9, 1.3), s * rng.range(0.8, 1.1)));
-    mesh.setMatrixAt(i, m);
     c.copy(greens[i % greens.length]).multiplyScalar(rng.range(0.8, 1.2));
-    mesh.setColorAt(i, c);
+    const k = Math.min(SECT - 1, Math.floor(((Math.atan2(z, x) + Math.PI) / TAU) * SECT));
+    buckets[k].m.push(m.clone()); buckets[k].c.push(c.clone()); buckets[k].ids.push(i);
   });
-  mesh.castShadow = false; mesh.receiveShadow = true;
-  mesh.name = 'forest';
-  mesh.userData.noAO = true;
-  mesh.baseColors = mesh.instanceColor.array.slice();
-  mesh.userData.noExport = true;
-  return mesh;
+  const group = new THREE.Group();
+  group.name = 'forest';
+  group.userData.noAO = true;
+  group.userData.noExport = true;
+  for (const b of buckets) {
+    if (!b.m.length) continue;
+    const mesh = new THREE.InstancedMesh(merged, material, b.m.length);
+    b.m.forEach((mm, i) => { mesh.setMatrixAt(i, mm); mesh.setColorAt(i, b.c[i]); });
+    mesh.castShadow = false; mesh.receiveShadow = true;
+    mesh.name = 'forest';
+    mesh.userData.noAO = true;
+    mesh.userData.noExport = true;
+    mesh.baseColors = mesh.instanceColor.array.slice();
+    mesh.instanceIds = b.ids; // original index, so seasonal tints land on the same trees
+    mesh.computeBoundingSphere();
+    group.add(mesh);
+  }
+  return group;
 }
 
 // ------------------------------------------------------------------ seasons
@@ -400,7 +441,7 @@ export const SEASON_LEAVES = {
 export function applySeason(trees, season) {
   const S = SEASON_LEAVES[season];
   const tmp = new THREE.Color();
-  for (const [k, f] of Object.entries(trees.fol)) {
+  for (const [k, entry] of Object.entries(trees.fol)) for (const f of entry.list ? entry.list() : [entry]) {
     const pal = S[k === 'cedarMid' ? 'cedar' : k];
     f.meshObj.visible = !!pal;
     if (!pal) continue;
@@ -423,16 +464,17 @@ export function applySeason(trees, season) {
   trees.mats.cherry.map = season === 'spring' ? trees.tex.blossom : trees.tex.maple;
   trees.mats.cherry.needsUpdate = true;
   // slope forest: autumn mixes in a few turning broadleaves, winter frosts it
-  const f = trees.forest;
-  const base = f.baseColors;
-  const arr = f.instanceColor.array;
   const autumnTint = [hex('#7a2e16'), hex('#9a5a1c'), hex('#6e6a22')];
-  for (let i = 0; i < f.count; i++) {
-    tmp.setRGB(base[i * 3], base[i * 3 + 1], base[i * 3 + 2]);
-    if (season === 'autumn' && (i * 7919) % 100 < 14) tmp.lerp(autumnTint[i % 3], 0.6);
-    if (season === 'spring' && (i * 7919) % 100 < 6) tmp.lerp(hex('#c99aa8'), 0.5);
-    arr[i * 3] = tmp.r; arr[i * 3 + 1] = tmp.g; arr[i * 3 + 2] = tmp.b;
+  for (const f of trees.forest.children) {
+    const base = f.baseColors, arr = f.instanceColor.array, ids = f.instanceIds;
+    for (let j = 0; j < f.count; j++) {
+      const i = ids[j];
+      tmp.setRGB(base[j * 3], base[j * 3 + 1], base[j * 3 + 2]);
+      if (season === 'autumn' && (i * 7919) % 100 < 14) tmp.lerp(autumnTint[i % 3], 0.6);
+      if (season === 'spring' && (i * 7919) % 100 < 6) tmp.lerp(hex('#c99aa8'), 0.5);
+      arr[j * 3] = tmp.r; arr[j * 3 + 1] = tmp.g; arr[j * 3 + 2] = tmp.b;
+    }
+    f.instanceColor.needsUpdate = true;
   }
-  f.instanceColor.needsUpdate = true;
   void lerp;
 }

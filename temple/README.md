@@ -44,13 +44,22 @@ the interface) and `?quality=medium|low`.
 
 Every visitor gets the full scene the gallery pictures were rendered from: ambient occlusion,
 4K shadows, 4× multisampling, the whole forest and all twelve cloud layers. Smoothness comes
-from savings you can't see:
-- Shadows are only re-rendered when the light changes.
-- The pond mirror draws only what can appear in it, and when the pond is small on screen it
-  refreshes every other frame.
-- Instances are merged so the scene draws in about 130 calls.
-- Shaders compile behind the loading screen.
-- Labels never force a page layout.
+only from savings that leave the image the same. Renders before and after differ by about
+2/255 per channel, which is falling leaves and drifting cloud.
+
+- **Lantern lights:** a lantern light that can't reach a pixel, or is off in daylight, adds
+  exactly zero light. The shader now skips its lighting maths instead of computing zero.
+- **Culling:** buildings, tree canopies and the slope forests are split by area, so whatever
+  is off-screen isn't drawn. That covers the main view, the pond mirror and the AO pass.
+  Triangles per frame fell by 17% in the overview and by about 50% in the garden and pond views.
+- **Pond mirror:** it draws only what can appear in the water. When the pond is small on
+  screen, it refreshes every other frame.
+- **Fewer draw calls:** the bronze bell (once 93 separate parts), the koi, the mist and the
+  incense smoke are each merged into single draws.
+- **Skipped work:** snow is skipped outside winter, invisible cloud pixels are skipped, and
+  shadows are only re-rendered when the light changes.
+- **No startup stutter:** shaders compile behind the loading screen, and labels never force
+  a page layout.
 
 A dynamic-resolution loop watches the frame time and moves the pixel ratio between 1×, the
 density the pictures were rendered at, and the screen's full sharpness (up to 2×). The effects
