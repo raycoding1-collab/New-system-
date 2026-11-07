@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { G, FOG_GLSL } from '../lib/patch.js';
 import { Rng } from '../lib/util.js';
+import { createBillboards } from './billboards.js';
 import { mapleLeafTexture, blossomTexture, softSpriteTexture, smokeTexture } from '../lib/textures.js';
 
 function petalTexture() {
@@ -188,29 +189,23 @@ export function createSmoke(origin) {
   const tex = smokeTexture(128);
   const group = new THREE.Group();
   group.name = 'incense-smoke';
-  const parts = [];
   const N = 18;
-  for (let i = 0; i < N; i++) {
-    const m = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0, color: 0xdfe3e6 });
-    const s = new THREE.Sprite(m);
-    s.userData = { age: (i / N) * 7, noAO: true, noExport: true };
-    group.add(s);
-    parts.push(s);
-  }
+  const puffs = createBillboards(N, tex, 0xdfe3e6, 'incense-smoke');
+  group.add(puffs.mesh);
+  const ages = Array.from({ length: N }, (_, i) => (i / N) * 7);
   const update = (dt, t, wind = 1) => {
-    for (const s of parts) {
-      s.userData.age += dt;
-      if (s.userData.age > 7) s.userData.age -= 7;
-      const a = s.userData.age / 7;
-      s.position.set(
+    for (let i = 0; i < N; i++) {
+      ages[i] += dt;
+      if (ages[i] > 7) ages[i] -= 7;
+      const a = ages[i] / 7;
+      const sc = 0.25 + a * 1.6;
+      puffs.set(i,
         origin.x + Math.sin(t * 0.7 + a * 5) * 0.25 * a + a * 1.1 * wind,
         origin.y + a * 4.2,
-        origin.z + Math.cos(t * 0.6 + a * 4) * 0.25 * a + a * 0.5 * wind);
-      const sc = 0.25 + a * 1.6;
-      s.scale.set(sc, sc, 1);
-      s.material.opacity = Math.sin(a * Math.PI) * 0.16 * (1 - a * 0.5);
-      s.material.rotation = a * 2 + t * 0.05;
+        origin.z + Math.cos(t * 0.6 + a * 4) * 0.25 * a + a * 0.5 * wind,
+        sc, sc, a * 2 + t * 0.05, Math.sin(a * Math.PI) * 0.16 * (1 - a * 0.5));
     }
+    puffs.commit();
   };
   return { group, update };
 }

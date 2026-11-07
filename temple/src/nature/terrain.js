@@ -201,7 +201,7 @@ function heightMesh(nx, nz, map, uvScale, push = null) {
   return g;
 }
 
-export function buildTerrain(B) {
+export function buildTerrain(B, Bstair = B, Bpaths = B) {
   const det = groundDetailTextures(512);
   const mat0 = patchMaterial(new THREE.MeshStandardMaterial({ name: 'ground', vertexColors: true, map: det.map, normalMap: det.normal, normalScale: new THREE.Vector2(0.7, 0.7), roughness: 0.95 }), { snow: 1.1 });
   const matFar = patchMaterial(new THREE.MeshStandardMaterial({ name: 'ground-far', vertexColors: true, roughness: 1 }), { snow: 0.6 });
@@ -232,8 +232,8 @@ export function buildTerrain(B) {
   group.add(farMesh);
 
   ishigaki(B);
-  approachStair(B);
-  paths(B);
+  approachStair(Bstair);
+  paths(Bpaths);
   return { group, materials: [mat0, matFar] };
 }
 

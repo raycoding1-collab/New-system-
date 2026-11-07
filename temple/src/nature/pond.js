@@ -3,6 +3,7 @@
 // an island with a pine and a snow-viewing lantern.
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Rng, mat, latheGeo } from '../lib/util.js';
 import { G, NOISE_GLSL, FOG_GLSL } from '../lib/patch.js';
 import { koiTexture } from '../lib/textures.js';
@@ -158,7 +159,7 @@ function makeKoi(P, rng) {
     const m = new THREE.Group();
     const s = rng.range(0.9, 1.5);
     m.scale.setScalar(s);
-    m.add(new THREE.Mesh(bg, material), new THREE.Mesh(tg, material));
+    m.add(new THREE.Mesh(mergeGeometries([bg, tg], false), material)); // body and tail in one draw
     group.add(m);
     const lobe = i % 2 ? { x: 37, z: -13 } : { x: 26.5, z: -5.5 };
     fish.push({ m, cx: lobe.x + rng.range(-1.5, 1.5), cz: lobe.z + rng.range(-1.5, 1.5), r: rng.range(2.2, 4.5), w: rng.range(0.12, 0.3) * (rng.f() < 0.5 ? -1 : 1), ph: rng.f() * 6.28, depth: rng.range(0.25, 0.55) });

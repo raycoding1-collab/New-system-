@@ -101,39 +101,44 @@ async function build() {
   const det = groundDetailTextures(256);
   P.moss = patchMaterial(new THREE.MeshStandardMaterial({ name: 'moss', color: '#5d7c2f', map: det.map, roughness: 1 }), { snow: 1.2 });
   world.P = P;
-  const B = new Builder();
+  // Each area gets its own builder, so its merged meshes have tight bounds and anything
+  // off-screen is culled (main view, pond mirror and AO pass alike).
+  const zones = {};
+  const Z = (name) => (zones[name] = zones[name] || new Builder());
 
   await step('Raising the five-storey pagoda');
-  const pagoda = buildPagoda(B, ...LAYOUT.pagoda);
+  const pagoda = buildPagoda(Z('pagoda'), ...LAYOUT.pagoda);
   await step('Framing the main hall');
-  const hondo = buildHondo(B, ...LAYOUT.hondo);
+  const hondo = buildHondo(Z('hondo'), ...LAYOUT.hondo);
   await step('Lacquering the mountain gate');
-  const sanmon = buildSanmon(B, ...LAYOUT.sanmon);
+  const sanmon = buildSanmon(Z('sanmon'), ...LAYOUT.sanmon);
   await step('Hanging the bronze bell');
-  const shoro = buildShoro(B, ...LAYOUT.shoro, P);
-  const tz = temizuya(B, LAYOUT.temizuya[0], 0, LAYOUT.temizuya[1], 0);
-  const incense = incenseBurner(B, LAYOUT.incense[0], 0.06, LAYOUT.incense[1]);
+  const shoro = buildShoro(Z('shoro'), ...LAYOUT.shoro, P);
+  const tz = temizuya(Z('court'), LAYOUT.temizuya[0], 0, LAYOUT.temizuya[1], 0);
+  const incense = incenseBurner(Z('court'), LAYOUT.incense[0], 0.06, LAYOUT.incense[1]);
 
   // lanterns: pairs along the approach, at the hall, the pagoda and the bell tower
   const lanternSpots = [];
   for (const z of [33, 26, 19, 12]) for (const sx of [-1, 1]) lanternSpots.push([sx * 4.4, z, 0]);
   for (const sx of [-1, 1]) lanternSpots.push([sx * 6.5, -3, 0], [sx * 5.2, 50.5, 0]);
   lanternSpots.push([-20.2, 4.6, Math.PI / 2], [-20.2, 11.4, Math.PI / 2], [23.4, 31.5, 0], [-15, -14, 0]);
-  for (const [x, z, r] of lanternSpots) kasugaLantern(B, x, 0.05, z, r, 1, Math.abs(z) > 45 || x < -14 ? 'stoneMoss' : 'stone');
-  for (const p of stairLanternSpots()) kasugaLantern(B, p.x, p.y, p.z, 0, 0.72, 'stoneMoss');
+  for (const [x, z, r] of lanternSpots) kasugaLantern(Z('court'), x, 0.05, z, r, 1, Math.abs(z) > 45 || x < -14 ? 'stoneMoss' : 'stone');
+  for (const p of stairLanternSpots()) kasugaLantern(Z('stair'), p.x, p.y, p.z, 0, 0.72, 'stoneMoss');
 
   await step('Cutting the terrace and the stair into the clouds');
-  const terrain = buildTerrain(B);
+  const terrain = buildTerrain(Z('walls'), Z('stair'), Z('court'));
   scene.add(terrain.group);
   await step('Raking the dry garden');
-  const garden = buildGarden(B);
+  const garden = buildGarden(Z('court'));
   scene.add(garden.gravel);
   await step('Filling the koi pond');
-  const pond = buildPond(B, P, renderer);
+  const pond = buildPond(Z('pond'), P, renderer);
   scene.add(pond.group);
 
   await step('Merging timber, tile and stone');
-  const built = B.build(P, { name: 'temple' });
+  const built = new THREE.Group();
+  built.name = 'temple';
+  for (const [name, b] of Object.entries(zones)) built.add(b.build(P, { name }));
   scene.add(built);
   scene.add(shoro.extra);
 
@@ -184,7 +189,7 @@ async function build() {
 
   // The pond mirror re-renders the scene: give it only what can show up in the water.
   const REFLECT = 1;
-  const skipInMirror = new Set(['cedars-mid', 'cedar-trunks-mid', 'forest', 'ground-far', 'weather', 'fireflies', 'incense-smoke', 'koi', 'karesansui', 'water']);
+  const skipInMirror = new Set(['cedars-mid', 'cedar-trunks-mid', 'forest', 'ground-far', 'weather', 'fireflies', 'incense-smoke', 'mist-wisps', 'koi', 'karesansui', 'water']);
   const markReflect = (o) => {
     if (skipInMirror.has(o.name) || o.isSprite) return;
     o.layers.enable(REFLECT);
@@ -251,8 +256,7 @@ function applyAtmosphere(a, updateEnv) {
   G.uFogColor.value.copy(a.fog); G.uFogSunColor.value.copy(a.fogSun);
   G.uFogDensity.value = a.fogDensity; G.uFogFalloff.value = a.fogFalloff; G.uHaze.value = a.haze; G.uFogBase.value = -18;
   clouds.shared.uLit.value.copy(a.cloudLit); clouds.shared.uShade.value.copy(a.cloudShade); clouds.shared.uCover.value = a.cloudCover;
-  clouds.wispMat.color.copy(a.cloudLit);
-  for (const w of clouds.wisps) w.material.color.copy(a.cloudLit).lerp(a.fog, 0.4);
+  clouds.wispColor.copy(a.cloudLit).lerp(a.fog, 0.4);
   sun.color.copy(a.sunColor);
   sun.intensity = a.sunI * smoothstep(-0.02, 0.08, a.sunDir.y);
   sun.position.copy(a.sunDir).multiplyScalar(220);

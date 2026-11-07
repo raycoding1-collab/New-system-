@@ -22,6 +22,19 @@ export const G = {
   uFogMax: { value: 1 },
 };
 
+// Point lights (the lanterns) out of reach of a pixel, or switched off in daylight, add exactly
+// zero light; three.js still evaluates the full BRDF for them. Skipping that call gives the
+// same image for a fraction of the shading work.
+{
+  const chunk = THREE.ShaderChunk.lights_fragment_begin;
+  const a = chunk.indexOf('#if ( NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )');
+  const b = chunk.indexOf('#endif', chunk.indexOf('#pragma unroll_loop_end', a));
+  const call = 'RE_Direct( directLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight );';
+  if (a >= 0 && b > a && chunk.slice(a, b).includes(call)) {
+    THREE.ShaderChunk.lights_fragment_begin = chunk.slice(0, a) + chunk.slice(a, b).replace(call, 'if ( directLight.visible ) ' + call) + chunk.slice(b);
+  }
+}
+
 export const NOISE_GLSL = /* glsl */`
 float tHash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float tNoise(vec2 p){
@@ -75,7 +88,7 @@ ${FOG_GLSL}
 `;
 
 const SNOW_FRAG = /* glsl */`
-{
+if (uSnow > 0.001) {
   vec3 wN = inverseTransformDirection(normal, viewMatrix);
   float up = smoothstep(0.32, 0.78, wN.y);
   vec2 suv = (vWPos.xz - uSnowBounds.xy) / uSnowBounds.zw;
